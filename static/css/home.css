@@ -1,0 +1,531 @@
+@import 'variables.css';
+
+/* Переменные для главной страницы */
+:root {
+    --feed-bg: #f3f4f6;
+    --card-bg: #ffffff;
+    --header-color: #111827;
+    --text-color: #374151;
+    --text-light: #6b7280;
+    --like-color: #4f46e5;  /* Основной цвет для кнопки лайк */
+    --like-color-hover: #4338ca;
+    --liked-color: #10b981;  /* Зеленый для лайкнутых профилей */
+    --liked-color-hover: #059669;
+    --dislike-color: #f3f4f6;
+    --dislike-text: #4b5563;
+    --dislike-hover: #e5e7eb;
+    --border-radius: 1rem;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --transition: all 0.3s ease;
+}
+
+/* Контейнер для ленты пользователей */
+.user-feed-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+}
+
+.feed-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+}
+
+/* Карусель профилей */
+.user-carousel {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+/* Карточка профиля */
+.profile-card {
+    background-color: var(--background-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    transition: var(--transition-normal);
+    position: relative;
+}
+
+.profile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Заголовок профиля */
+.profile-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-name {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.profile-course {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+}
+
+/* Контейнер изображения профиля */
+.profile-image-container {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto var(--spacing-lg);
+    position: relative;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    border: 4px solid var(--primary-color);
+}
+
+.profile-image-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background-color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-2xl);
+    color: var(--primary-color);
+    border: 4px solid var(--primary-color);
+}
+
+/* Информация профиля */
+.profile-info {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-gender {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-md);
+}
+
+/* Интересы */
+.profile-interests {
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-interests h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-md);
+}
+
+.interests-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+}
+
+.interest-tag {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+}
+
+/* Биография */
+.profile-bio {
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-bio h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-md);
+}
+
+.profile-bio p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Кнопки действий */
+.profile-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+}
+
+.btn-like,
+.btn-dislike,
+.btn-liked {
+    padding: var(--spacing-sm) var(--spacing-xl);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition-normal);
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.btn-like {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-like:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.btn-liked {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-liked:hover {
+    background-color: var(--success-color);
+    opacity: 0.9;
+}
+
+.btn-dislike {
+    background-color: var(--background-secondary);
+    color: var(--text-secondary);
+}
+
+.btn-dislike:hover {
+    background-color: var(--border-color);
+    transform: translateY(-2px);
+}
+
+/* Состояния и анимации */
+.hidden {
+    display: none;
+}
+
+.swipe-out {
+    animation: swipeOut 0.3s ease forwards;
+}
+
+.swipe-in {
+    animation: swipeIn 0.3s ease forwards;
+}
+
+@keyframes swipeOut {
+    to {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes swipeIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Уведомления */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(100%);
+    opacity: 0;
+    transition: var(--transition-normal);
+    z-index: 1000;
+    max-width: 300px;
+    min-height: fit-content;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.notification.success {
+    background-color: var(--success-color);
+}
+
+.notification.error {
+    background-color: var(--danger-color);
+}
+
+.notification.info {
+    background-color: var(--primary-color);
+}
+
+/* Адаптивная верстка для уведомлений */
+@media (max-width: 480px) {
+    .notification {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        max-width: calc(100% - 40px);
+        padding: 12px 20px;
+        text-align: center;
+    }
+}
+
+/* Адаптивная верстка */
+@media (max-width: 480px) {
+    .user-feed-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .profile-card {
+        padding: var(--spacing-md);
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+    }
+    
+    .btn-like,
+    .btn-dislike,
+    .btn-liked {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Состояние при отсутствии профилей */
+.no-profiles,
+.no-more-profiles {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--background-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.no-profiles h2,
+.no-more-profiles h2 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-xl);
+}
+
+.no-profiles p,
+.no-more-profiles p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.refresh-btn {
+    display: inline-block;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    transition: var(--transition-normal);
+}
+
+.refresh-btn:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Фильтры */
+.filters {
+    background-color: var(--background-primary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Поиск */
+.search-container {
+    margin-bottom: var(--spacing-lg);
+}
+
+.search-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-normal);
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .home-container {
+        padding: var(--spacing-md);
+    }
+    
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+}
+
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.like-button:active {
+    animation: pulse 0.3s ease;
+}
+
+/* Индикатор загрузки */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-xl);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--primary-light);
+    border-top-color: var(--primary-color);
+    border-radius: var(--radius-full);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Контейнер для хранения скрытых профилей */
+.next-profiles-container {
+    display: none;
+}
+
+/* Анимации свайпа */
+.swipe-out {
+    transform: translateX(-120%);
+    opacity: 0;
+}
+
+.swipe-in {
+    animation: swipeIn 0.5s forwards;
+}
+
+@keyframes swipeIn {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Стили для сообщения об отсутствии профилей */
+.no-profiles,
+.no-more-profiles {
+    text-align: center;
+    padding: 3rem 2rem;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+}
+
+.no-profiles h2,
+.no-more-profiles h2 {
+    font-size: 1.5rem;
+    color: var(--header-color);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.no-profiles p,
+.no-more-profiles p {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.refresh-btn {
+    display: inline-block;
+    padding: 0.875rem 1.5rem;
+    background-color: var(--like-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.refresh-btn:hover {
+    background-color: var(--like-color-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Медиа-запросы для адаптивности */
+@media (max-width: 480px) {
+    .feed-title {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .btn-like,
+    .btn-liked,
+    .btn-dislike {
+        width: 100%;
+        padding: 0.625rem 1rem;
+    }
+} 

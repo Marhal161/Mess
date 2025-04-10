@@ -1,0 +1,318 @@
+{% extends 'base.html' %}
+
+{% block title %}Главная - Mess{% endblock %}
+
+{% block content %}
+<div class="user-feed-container">
+    <h1 class="feed-title">Знакомьтесь с другими студентами</h1>
+    
+    {% if users %}
+        <div class="user-carousel">
+            <div class="profile-card" id="current-profile" data-is-liked="{{ users.0.is_liked|yesno:'true,false' }}">
+                <div class="profile-header">
+                    <h2 class="profile-name">{{ users.0.first_name }} {{ users.0.last_name }}</h2>
+                    <span class="profile-course">{{ users.0.get_kurs_display }} курс</span>
+                </div>
+                
+                <div class="profile-image-container">
+                    {% if users.0.avatar %}
+                        <img src="{{ users.0.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                    {% else %}
+                        <div class="profile-image-placeholder">
+                            <span>{{ users.0.first_name.0 }}{{ users.0.last_name.0 }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="profile-info">
+                    <p class="profile-gender">{{ users.0.get_gender_display }}</p>
+                    
+                    {% if users.0.interests.all %}
+                    <div class="profile-interests">
+                        <h3>Интересы:</h3>
+                        <div class="interests-list">
+                            {% for interest in users.0.interests.all %}
+                                <span class="interest-tag">{{ interest.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if users.0.bio %}
+                    <div class="profile-bio">
+                        <h3>О себе:</h3>
+                        <p>{{ users.0.bio }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="profile-actions">
+                    <button class="btn-dislike" id="dislike-btn"><i class="fas fa-times"></i> Пропустить</button>
+                    {% if users.0.is_liked %}
+                        <button class="btn-liked" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i> Нравится</button>
+                    {% else %}
+                        <button class="btn-like" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i> Нравится</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="next-profiles-container">
+            {% for user in users|slice:"1:" %}
+                <div class="profile-card hidden" data-user-id="{{ user.id }}" data-is-liked="{{ user.is_liked|yesno:'true,false' }}">
+                    <div class="profile-header">
+                        <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
+                        <span class="profile-course">{{ user.get_kurs_display }} курс</span>
+                    </div>
+                    
+                    <div class="profile-image-container">
+                        {% if user.avatar %}
+                            <img src="{{ user.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                        {% else %}
+                            <div class="profile-image-placeholder">
+                                <span>{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="profile-info">
+                        <p class="profile-gender">{{ user.get_gender_display }}</p>
+                        
+                        {% if user.interests.all %}
+                        <div class="profile-interests">
+                            <h3>Интересы:</h3>
+                            <div class="interests-list">
+                                {% for interest in user.interests.all %}
+                                    <span class="interest-tag">{{ interest.name }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if user.bio %}
+                        <div class="profile-bio">
+                            <h3>О себе:</h3>
+                            <p>{{ user.bio }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="profile-actions">
+                        <button class="btn-dislike" data-action="dislike"><i class="fas fa-times"></i> Пропустить</button>
+                        {% if user.is_liked %}
+                            <button class="btn-liked" data-action="like"><i class="fas fa-heart"></i> Нравится</button>
+                        {% else %}
+                            <button class="btn-like" data-action="like"><i class="fas fa-heart"></i> Нравится</button>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="no-more-profiles hidden" id="no-more-profiles">
+            <h2>Вы просмотрели всех пользователей!</h2>
+            <p>Возвращайтесь позже, когда появятся новые пользователи.</p>
+            <a href="/app" class="refresh-btn">Обновить страницу</a>
+        </div>
+    
+    {% else %}
+        <div class="no-profiles">
+            <h2>Пока нет доступных пользователей для просмотра</h2>
+            <p>Вы уже посмотрели все профили или пока нет других пользователей в системе.</p>
+            <a href="/app" class="refresh-btn">Обновить страницу</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const likeBtn = document.getElementById('like-btn');
+    const dislikeBtn = document.getElementById('dislike-btn');
+    const currentProfile = document.getElementById('current-profile');
+    const noMoreProfiles = document.getElementById('no-more-profiles');
+    let profilesArray = Array.from(document.querySelectorAll('.next-profiles-container .profile-card'));
+    
+    // Функция для обработки лайка
+    async function handleLike(userId, btn) {
+        // Если кнопка уже имеет класс btn-liked, значит профиль уже лайкнут
+        if (btn && btn.classList.contains('btn-liked')) {
+            showNotification('Вы уже лайкнули этот профиль', 'info');
+            return;
+        }
+        
+        try {
+            // Получаем токены из кук
+            const accessToken = getCookie('access_token');
+            const csrfToken = getCookie('csrftoken');
+            
+            const headers = {
+                'X-CSRFToken': csrfToken
+            };
+            
+            // Добавляем Authorization заголовок, если доступен токен
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+            
+            // Отправляем форму с CSRF токеном
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            
+            const response = await fetch(`/app/api/like/${userId}/`, {
+                method: 'POST',
+                headers: headers,
+                body: formData,
+                credentials: 'include'  // Для передачи кук
+            });
+            
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/app/auth/login/';
+                    return;
+                }
+                if (response.status === 403) {
+                    alert('Ошибка CSRF. Перезагрузите страницу и попробуйте снова.');
+                    return;
+                }
+            }
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Добавляем класс к кнопке, чтобы показать, что профиль лайкнут
+                if (btn) {
+                    btn.classList.remove('btn-like');
+                    btn.classList.add('btn-liked');
+                }
+                showNotification('Профиль понравился!', 'success');
+            } else {
+                showNotification(data.detail || 'Произошла ошибка', 'error');
+            }
+        } catch (error) {
+            console.error('Ошибка при отправке лайка:', error);
+            showNotification('Не удалось поставить лайк', 'error');
+        }
+    }
+    
+    // Функция для получения CSRF токена из кук
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Функция для отображения уведомлений
+    function showNotification(message, type) {
+        // Проверяем, есть ли уже уведомление на странице
+        let notificationEl = document.querySelector('.notification');
+        
+        if (!notificationEl) {
+            // Создаем новое уведомление
+            notificationEl = document.createElement('div');
+            notificationEl.className = `notification ${type}`;
+            document.body.appendChild(notificationEl);
+        } else {
+            // Обновляем класс типа уведомления
+            notificationEl.className = `notification ${type}`;
+        }
+        
+        // Устанавливаем текст и показываем уведомление
+        notificationEl.textContent = message;
+        notificationEl.classList.add('show');
+        
+        // Скрываем уведомление через 3 секунды
+        setTimeout(() => {
+            notificationEl.classList.remove('show');
+        }, 3000);
+    }
+    
+    // Функция для показа следующего профиля
+    function showNextProfile() {
+        // Удаляем текущий профиль с анимацией
+        currentProfile.classList.add('swipe-out');
+        
+        setTimeout(() => {
+            // Проверяем, есть ли еще профили
+            if (profilesArray.length > 0) {
+                // Получаем следующий профиль
+                const nextProfile = profilesArray.shift();
+                
+                // Копируем содержимое следующего профиля в текущий
+                currentProfile.innerHTML = nextProfile.innerHTML;
+                
+                // Копируем data-is-liked атрибут
+                currentProfile.dataset.isLiked = nextProfile.dataset.isLiked;
+                
+                // Обновляем data-user-id у кнопки лайка
+                const newLikeBtn = currentProfile.querySelector('.btn-like, .btn-liked');
+                newLikeBtn.dataset.userId = nextProfile.dataset.userId;
+                
+                // Сбрасываем класс для анимации и показываем профиль
+                currentProfile.classList.remove('swipe-out');
+                currentProfile.classList.add('swipe-in');
+                
+                // Удаляем класс swipe-in после завершения анимации
+                setTimeout(() => {
+                    currentProfile.classList.remove('swipe-in');
+                }, 500);
+                
+                // Обновляем обработчики событий для новых кнопок
+                setupButtons();
+            } else {
+                // Если профилей больше нет, показываем сообщение
+                currentProfile.style.display = 'none';
+                noMoreProfiles.classList.remove('hidden');
+            }
+        }, 500); // Ждем завершения анимации swipe-out
+    }
+    
+    // Настройка обработчиков событий для кнопок
+    function setupButtons() {
+        const newLikeBtn = currentProfile.querySelector('.btn-like, .btn-liked');
+        const newDislikeBtn = currentProfile.querySelector('.btn-dislike');
+        
+        newLikeBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            handleLike(userId, this);
+            
+            // Если не был лайкнут ранее, показываем следующий профиль
+            if (!this.classList.contains('btn-liked')) {
+                showNextProfile();
+            }
+        });
+        
+        newDislikeBtn.addEventListener('click', function() {
+            showNextProfile();
+        });
+    }
+    
+    // Инициализация обработчиков при загрузке страницы
+    if (likeBtn && dislikeBtn) {
+        likeBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            handleLike(userId, this);
+            
+            // Если не был лайкнут ранее, показываем следующий профиль
+            if (!this.classList.contains('btn-liked')) {
+                showNextProfile();
+            }
+        });
+        
+        dislikeBtn.addEventListener('click', function() {
+            showNextProfile();
+        });
+    }
+});
+</script>
+{% endblock %} 

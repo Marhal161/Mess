@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mess - Социальная сеть для студентов{% endblock %}</title>
+    
+    {% load static %}
+    <!-- Подключаем шрифты и иконки -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Подключаем стили -->
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    {% csrf_token %}
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="main-header">
+        <div class="container">
+            <div class="logo">
+                <a href="/app">Mess</a>
+            </div>
+            <nav class="main-nav">
+                {% if user.is_authenticated %}
+                    <a href="/app" class="nav-link"><i class="fas fa-home"></i> Главная</a>
+                    <a href="/app/profile/" class="nav-link"><i class="fas fa-user"></i> Профиль</a>
+                    <a href="/app/logout/" class="nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+                {% else %}
+                    <a href="/app/auth/login/" class="nav-link"><i class="fas fa-sign-in-alt"></i> Вход</a>
+                    <a href="/app/auth/register/" class="nav-link register-link"><i class="fas fa-user-plus"></i> Регистрация</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+    
+    <main class="main-content">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <footer class="main-footer">
+        <div class="container">
+            <p>&copy; 2024 Mess. Все права защищены.</p>
+        </div>
+    </footer>
+    
+    <!-- Общие скрипты -->
+    <script src="{% static 'js/main.js' %}"></script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html> 
