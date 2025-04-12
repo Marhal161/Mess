@@ -161,53 +161,68 @@
 /* Кнопки действий */
 .profile-actions {
     display: flex;
-    gap: var(--spacing-md);
     justify-content: center;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
 }
 
 .btn-like,
 .btn-dislike,
-.btn-liked {
-    padding: var(--spacing-sm) var(--spacing-xl);
-    border-radius: var(--radius-full);
-    font-size: var(--font-size-md);
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition-normal);
-    border: none;
+.btn-liked,
+.btn-message {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border: none;
+    box-shadow: var(--shadow-md);
 }
 
 .btn-like {
-    background-color: var(--primary-color);
+    background-color: #4A90E2; /* Голубой цвет для не поставленного лайка */
     color: white;
 }
 
 .btn-like:hover {
-    background-color: var(--primary-dark);
-    transform: translateY(-2px);
+    background-color: #357ABD; /* Темно-голубой при наведении */
+    transform: translateY(-5px) scale(1.05);
 }
 
 .btn-liked {
-    background-color: var(--success-color);
+    background-color: #FF4757; /* Красный цвет для поставленного лайка */
     color: white;
 }
 
 .btn-liked:hover {
-    background-color: var(--success-color);
-    opacity: 0.9;
+    background-color: #E03547; /* Темно-красный при наведении */
+    transform: translateY(-5px) scale(1.05);
 }
 
 .btn-dislike {
-    background-color: var(--background-secondary);
-    color: var(--text-secondary);
+    background-color: var(--dislike-color);
+    color: var(--dislike-text);
 }
 
 .btn-dislike:hover {
-    background-color: var(--border-color);
-    transform: translateY(-2px);
+    background-color: var(--dislike-hover);
+    transform: translateY(-5px) scale(1.05);
+}
+
+.btn-message {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+.btn-message:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: translateY(-5px) scale(1.05);
 }
 
 /* Состояния и анимации */
@@ -527,5 +542,38 @@
     .btn-dislike {
         width: 100%;
         padding: 0.625rem 1rem;
+    }
+}
+
+.liked-you-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: var(--liked-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: fadeIn 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.liked-you-badge i {
+    color: white;
+    font-size: 1rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 } 

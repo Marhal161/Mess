@@ -82,12 +82,16 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok && data.success) {
                 console.log('Успешный вход, перенаправление на главную страницу');
                 
-                // Устанавливаем полученные токены в куки
+                // Устанавливаем полученные токены в куки с сроком действия и другими параметрами
                 if (data.tokens && data.tokens.access) {
-                    document.cookie = `access_token=${data.tokens.access}; path=/`;
+                    // Устанавливаем access_token на 1 день
+                    document.cookie = `access_token=${data.tokens.access}; path=/; max-age=86400; samesite=Lax`;
+                    console.log('Установлен access_token в куки');
                 }
                 if (data.tokens && data.tokens.refresh) {
-                    document.cookie = `refresh_token=${data.tokens.refresh}; path=/`;
+                    // Устанавливаем refresh_token на 30 дней
+                    document.cookie = `refresh_token=${data.tokens.refresh}; path=/; max-age=2592000; samesite=Lax`;
+                    console.log('Установлен refresh_token в куки');
                 }
                 
                 // Перенаправление на главную страницу после успешного входа
@@ -250,9 +254,22 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                console.log('Успешная регистрация, перенаправление на главную страницу');
+                console.log('Успешная регистрация', data);
+                
+                // Сохраняем токены в куки, если они получены от сервера
+                if (data.tokens && data.tokens.access) {
+                    // Устанавливаем access_token на 1 день
+                    document.cookie = `access_token=${data.tokens.access}; path=/; max-age=86400; samesite=Lax`;
+                    console.log('Установлен access_token в куки');
+                }
+                if (data.tokens && data.tokens.refresh) {
+                    // Устанавливаем refresh_token на 30 дней
+                    document.cookie = `refresh_token=${data.tokens.refresh}; path=/; max-age=2592000; samesite=Lax`;
+                    console.log('Установлен refresh_token в куки');
+                }
+                
                 // Перенаправление на главную страницу после успешной регистрации
-                window.location.href = '/app';  // Изменено с пустой строки на '/app'
+                window.location.href = '/app';
             } else {
                 // Отображение ошибки и возврат к первому шагу
                 step2.style.display = 'none';
@@ -399,15 +416,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Вызываем инициализацию валидации только на странице регистрации
+        // Инициализация валидации пароля
         setupPasswordValidation();
+        setupPasswordToggle();
     }
     
     // Если мы на странице регистрации и видим второй шаг, загрузим интересы
     if (isRegisterPage && step2 && step2.style.display !== 'none') {
         loadInterests();
     }
-    
-    // Вызываем инициализацию на всех страницах
-    setupPasswordToggle();
 });

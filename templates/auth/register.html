@@ -3,6 +3,7 @@
 {% block title %}Регистрация - Mess{% endblock %}
 
 {% block content %}
+{% load static %}
 <div class="auth-container">
     <!-- Шаг 1: Форма с персональными данными -->
     <div class="auth-form register-form" id="step-1">
@@ -133,5 +134,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="/static/js/auth.js"></script>
+<script src="{% static 'js/auth.js' %}"></script>
 {% endblock %}

@@ -47,12 +47,13 @@
                 </div>
                 
                 <div class="profile-actions">
-                    <button class="btn-dislike" id="dislike-btn"><i class="fas fa-times"></i> Пропустить</button>
+                    <button class="btn-dislike" id="dislike-btn"><i class="fas fa-times"></i></button>
                     {% if users.0.is_liked %}
-                        <button class="btn-liked" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i> Нравится</button>
+                        <button class="btn-liked" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i></button>
                     {% else %}
-                        <button class="btn-like" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i> Нравится</button>
+                        <button class="btn-like" id="like-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-heart"></i></button>
                     {% endif %}
+                    <button class="btn-message" id="message-btn" data-user-id="{{ users.0.id }}"><i class="fas fa-comment"></i></button>
                 </div>
             </div>
         </div>
@@ -98,12 +99,13 @@
                     </div>
                     
                     <div class="profile-actions">
-                        <button class="btn-dislike" data-action="dislike"><i class="fas fa-times"></i> Пропустить</button>
+                        <button class="btn-dislike" data-action="dislike"><i class="fas fa-times"></i></button>
                         {% if user.is_liked %}
-                            <button class="btn-liked" data-action="like"><i class="fas fa-heart"></i> Нравится</button>
+                            <button class="btn-liked" data-action="like"><i class="fas fa-heart"></i></button>
                         {% else %}
-                            <button class="btn-like" data-action="like"><i class="fas fa-heart"></i> Нравится</button>
+                            <button class="btn-like" data-action="like"><i class="fas fa-heart"></i></button>
                         {% endif %}
+                        <button class="btn-message" data-action="message" data-user-id="{{ user.id }}"><i class="fas fa-comment"></i></button>
                     </div>
                 </div>
             {% endfor %}
@@ -130,25 +132,21 @@
 document.addEventListener('DOMContentLoaded', function() {
     const likeBtn = document.getElementById('like-btn');
     const dislikeBtn = document.getElementById('dislike-btn');
+    const messageBtn = document.getElementById('message-btn');
     const currentProfile = document.getElementById('current-profile');
     const noMoreProfiles = document.getElementById('no-more-profiles');
     let profilesArray = Array.from(document.querySelectorAll('.next-profiles-container .profile-card'));
     
     // Функция для обработки лайка
     async function handleLike(userId, btn) {
-        // Если кнопка уже имеет класс btn-liked, значит профиль уже лайкнут
-        if (btn && btn.classList.contains('btn-liked')) {
-            showNotification('Вы уже лайкнули этот профиль', 'info');
-            return;
-        }
-        
         try {
             // Получаем токены из кук
             const accessToken = getCookie('access_token');
             const csrfToken = getCookie('csrftoken');
             
             const headers = {
-                'X-CSRFToken': csrfToken
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json'
             };
             
             // Добавляем Authorization заголовок, если доступен токен
@@ -156,14 +154,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers['Authorization'] = `Bearer ${accessToken}`;
             }
             
-            // Отправляем форму с CSRF токеном
-            const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', csrfToken);
+            // Определяем тип действия (лайк или отмена лайка)
+            const isLiked = btn && btn.classList.contains('btn-liked');
+            const method = isLiked ? 'DELETE' : 'POST';
             
             const response = await fetch(`/app/api/like/${userId}/`, {
-                method: 'POST',
+                method: method,
                 headers: headers,
-                body: formData,
                 credentials: 'include'  // Для передачи кук
             });
             
@@ -176,23 +173,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Ошибка CSRF. Перезагрузите страницу и попробуйте снова.');
                     return;
                 }
+                throw new Error(`Ошибка ${response.status}`);
             }
             
             const data = await response.json();
             
             if (response.ok) {
-                // Добавляем класс к кнопке, чтобы показать, что профиль лайкнут
+                // Переключаем класс кнопки в зависимости от действия
                 if (btn) {
-                    btn.classList.remove('btn-like');
-                    btn.classList.add('btn-liked');
+                    if (isLiked) {
+                        btn.classList.remove('btn-liked');
+                        btn.classList.add('btn-like');
+                        showNotification('Вы отменили лайк', 'info');
+                    } else {
+                        btn.classList.remove('btn-like');
+                        btn.classList.add('btn-liked');
+                        showNotification('Профиль понравился!', 'success');
+                    }
                 }
-                showNotification('Профиль понравился!', 'success');
             } else {
                 showNotification(data.detail || 'Произошла ошибка', 'error');
             }
         } catch (error) {
-            console.error('Ошибка при отправке лайка:', error);
-            showNotification('Не удалось поставить лайк', 'error');
+            console.error('Ошибка при обработке лайка:', error);
+            showNotification('Произошла ошибка при обработке запроса', 'error');
         }
     }
     
@@ -248,33 +252,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Получаем следующий профиль
                 const nextProfile = profilesArray.shift();
                 
-                // Копируем содержимое следующего профиля в текущий
+                // Копируем контент в текущий профиль
                 currentProfile.innerHTML = nextProfile.innerHTML;
+                currentProfile.setAttribute('data-is-liked', nextProfile.getAttribute('data-is-liked'));
+                currentProfile.setAttribute('data-id', nextProfile.getAttribute('data-user-id'));
                 
-                // Копируем data-is-liked атрибут
-                currentProfile.dataset.isLiked = nextProfile.dataset.isLiked;
-                
-                // Обновляем data-user-id у кнопки лайка
-                const newLikeBtn = currentProfile.querySelector('.btn-like, .btn-liked');
-                newLikeBtn.dataset.userId = nextProfile.dataset.userId;
-                
-                // Сбрасываем класс для анимации и показываем профиль
+                // Удаляем класс swipe-out и добавляем swipe-in
                 currentProfile.classList.remove('swipe-out');
                 currentProfile.classList.add('swipe-in');
                 
-                // Удаляем класс swipe-in после завершения анимации
+                // Инициализируем обработчики событий
+                initProfileActions();
+                
+                // Через некоторое время удаляем класс swipe-in
                 setTimeout(() => {
                     currentProfile.classList.remove('swipe-in');
-                }, 500);
-                
-                // Обновляем обработчики событий для новых кнопок
-                setupButtons();
+                }, 300);
             } else {
                 // Если профилей больше нет, показываем сообщение
                 currentProfile.style.display = 'none';
                 noMoreProfiles.classList.remove('hidden');
             }
-        }, 500); // Ждем завершения анимации swipe-out
+        }, 300);
     }
     
     // Настройка обработчиков событий для кнопок
@@ -297,21 +296,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Инициализация обработчиков при загрузке страницы
-    if (likeBtn && dislikeBtn) {
+    // Функция для обработки кнопки сообщения
+    function handleMessage(userId) {
+        // В будущем здесь будет редирект на страницу чата
+        showNotification('Функция сообщений находится в разработке', 'info');
+        // Можно также реализовать редирект на страницу чата с пользователем
+        // window.location.href = `/app/chat/${userId}/`;
+    }
+    
+    // Добавляем обработчики событий к кнопкам
+    if (likeBtn) {
         likeBtn.addEventListener('click', function() {
-            const userId = this.dataset.userId;
+            const userId = this.getAttribute('data-user-id');
             handleLike(userId, this);
-            
-            // Если не был лайкнут ранее, показываем следующий профиль
-            if (!this.classList.contains('btn-liked')) {
-                showNextProfile();
-            }
         });
-        
+    }
+    
+    if (dislikeBtn) {
         dislikeBtn.addEventListener('click', function() {
             showNextProfile();
         });
+    }
+    
+    if (messageBtn) {
+        messageBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            handleMessage(userId);
+        });
+    }
+    
+    // Функция для инициализации кнопок на новом профиле
+    function initProfileActions() {
+        const newLikeBtn = currentProfile.querySelector('.btn-like, .btn-liked');
+        const newDislikeBtn = currentProfile.querySelector('.btn-dislike');
+        const newMessageBtn = currentProfile.querySelector('.btn-message');
+        
+        if (newLikeBtn) {
+            newLikeBtn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id') || currentProfile.getAttribute('data-id');
+                handleLike(userId, this);
+            });
+        }
+        
+        if (newDislikeBtn) {
+            newDislikeBtn.addEventListener('click', function() {
+                showNextProfile();
+            });
+        }
+        
+        if (newMessageBtn) {
+            newMessageBtn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id') || currentProfile.getAttribute('data-id');
+                handleMessage(userId);
+            });
+        }
     }
 });
 </script>

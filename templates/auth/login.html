@@ -3,6 +3,7 @@
 {% block title %}Вход в систему - Mess{% endblock %}
 
 {% block content %}
+{% load static %}
 <div class="auth-container">
     <div class="auth-form">
         <h1>Вход в систему</h1>
@@ -39,5 +40,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="/static/js/auth.js"></script>
+<script src="{% static 'js/auth.js' %}"></script>
 {% endblock %}

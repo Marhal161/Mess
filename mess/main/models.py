@@ -6,6 +6,16 @@ from django.utils import timezone
 import random
 import string
 
+def get_avatar_path(instance, filename):
+    """
+    Функция определяет путь для сохранения аватара пользователя.
+    Создает структуру: media/profiles/username/filename
+    """
+    # Очистка имени пользователя от спецсимволов и приведение к нижнему регистру
+    username = ''.join(c for c in instance.username if c.isalnum() or c == '_').lower()
+    # Возвращаем путь относительно MEDIA_ROOT
+    return os.path.join('profiles', username, filename)
+
 class Interest(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -24,7 +34,7 @@ class Role(models.Model):
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=11)
-    avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
+    avatar = models.ImageField(upload_to=get_avatar_path, null=True, blank=True)
     bio = models.TextField(blank=True)
     interests = models.ManyToManyField(Interest, related_name='users', blank=True)
     role = models.ManyToManyField(Role, related_name='users_with_role', blank=True)

@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Мой профиль - Mess{% endblock %}
+
+{% block extra_css %}
+
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <div class="profile-info-main">
+            <div id="profile-avatar" class="profile-avatar">
+                <!-- Аватар будет добавлен через JavaScript -->
+            </div>
+            <div class="profile-text-info">
+                <h1 id="profile-name" class="profile-name"></h1>
+                <p id="profile-username" class="profile-username"></p>
+                <div id="profile-likes-count" class="profile-likes-count"></div>
+            </div>
+        </div>
+        <div class="profile-actions">
+            <button id="edit-profile-btn" class="btn-primary"><i class="fas fa-edit"></i> Редактировать</button>
+            <button id="change-password-btn" class="btn-secondary"><i class="fas fa-key"></i> Сменить пароль</button>
+            <button id="delete-account-btn" class="btn-danger"><i class="fas fa-trash"></i> Удалить аккаунт</button>
+        </div>
+    </div>
+    
+    <div class="profile-content" id="profile-view">
+        <div class="profile-section">
+            <h3>Контактная информация</h3>
+            <div class="contact-info">
+                <p class="profile-email" id="profile-email"></p>
+                <p class="profile-phone" id="profile-phone"></p>
+            </div>
+            <div class="profile-meta">
+                <span class="profile-gender" id="profile-gender"></span>
+                <span class="profile-course" id="profile-kurs"></span>
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h3>О себе</h3>
+            <div class="profile-bio" id="profile-bio">
+                <!-- Информация о пользователе будет добавлена через JavaScript -->
+            </div>
+        </div>
+        
+        <div class="profile-section">
+            <h3>Интересы</h3>
+            <div class="profile-interests" id="profile-interests">
+                <!-- Интересы будут добавлены через JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <div class="profile-content hidden" id="profile-edit">
+        <form id="profile-edit-form">
+            <div class="form-section">
+                <h3>Основная информация</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-first-name">Имя</label>
+                        <input type="text" id="edit-first-name" name="first_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-last-name">Фамилия</label>
+                        <input type="text" id="edit-last-name" name="last_name" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-email">Email</label>
+                    <input type="email" id="edit-email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-phone">Телефон</label>
+                    <input type="tel" id="edit-phone" name="phone" pattern="[0-9]{11}" required>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Дополнительная информация</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-gender">Пол</label>
+                        <select id="edit-gender" name="gender">
+                            <option value="">Не указан</option>
+                            <option value="male">Мужчина</option>
+                            <option value="female">Женщина</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-kurs">Курс</label>
+                        <select id="edit-kurs" name="kurs">
+                            <option value="">Не указан</option>
+                            <option value="1">1 курс</option>
+                            <option value="2">2 курс</option>
+                            <option value="3">3 курс</option>
+                            <option value="4">4 курс</option>
+                            <option value="5">5 курс</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-bio">О себе</label>
+                    <textarea id="edit-bio" name="bio" rows="5"></textarea>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Фотография профиля</h3>
+                <div class="avatar-upload">
+                    <div class="avatar-preview" id="avatar-preview">
+                        <!-- Предпросмотр фото будет здесь -->
+                    </div>
+                    <div class="avatar-edit">
+                        <input type='file' id="avatar-upload" name="avatar" accept=".png, .jpg, .jpeg" />
+                        <label for="avatar-upload">Изменить фото</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h3>Интересы</h3>
+                <div class="interests-container" id="edit-interests">
+                    <!-- Интересы будут загружены через JavaScript -->
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" id="cancel-edit-btn" class="btn-secondary">Отмена</button>
+                <button type="submit" class="btn-primary">Сохранить изменения</button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Модальное окно смены пароля -->
+    <div class="modal" id="password-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Смена пароля</h2>
+                <span class="close" id="close-password-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Текущий пароль</label>
+                        <input type="password" id="current-password" name="current_password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Новый пароль</label>
+                        <input type="password" id="new-password" name="new_password" required>
+                        <div class="password-strength-meter">
+                            <div class="strength-bar" id="strength-bar"></div>
+                        </div>
+                        <div class="password-requirements" id="password-requirements">
+                            <div class="requirement" data-requirement="length">
+                                <span class="check">✓</span> Не менее 8 символов
+                            </div>
+                            <div class="requirement" data-requirement="lowercase">
+                                <span class="check">✓</span> Строчная буква
+                            </div>
+                            <div class="requirement" data-requirement="uppercase">
+                                <span class="check">✓</span> Заглавная буква
+                            </div>
+                            <div class="requirement" data-requirement="number">
+                                <span class="check">✓</span> Цифра
+                            </div>
+                            <div class="requirement" data-requirement="special">
+                                <span class="check">✓</span> Специальный символ
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Подтвердите пароль</label>
+                        <input type="password" id="confirm-password" name="confirm_password" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Изменить пароль</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно удаления аккаунта -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Удаление аккаунта</h2>
+                <span class="close" id="close-delete-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="warning-text">Вы уверены, что хотите удалить свой аккаунт? Это действие нельзя отменить.</p>
+                <div class="form-actions">
+                    <button id="cancel-delete-btn" class="btn-secondary">Отмена</button>
+                    <button id="confirm-delete-btn" class="btn-danger">Удалить аккаунт</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно редактирования аватара -->
+    <div class="modal" id="avatar-edit-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редактировать фото</h2>
+                <span class="close" id="close-avatar-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="avatar-editor-container" class="avatar-editor-container">
+                    <!-- Редактор аватара будет добавлен через JavaScript -->
+                </div>
+                <div class="form-actions">
+                    <button id="cancel-avatar-btn" class="btn-secondary">Отмена</button>
+                    <button id="save-avatar-btn" class="btn-primary">Применить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Уведомления -->
+    <div class="notification" id="notification" style="display: none;"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/profile.js' %}"></script>
+{% endblock %} 
