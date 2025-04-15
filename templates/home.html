@@ -298,10 +298,34 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Функция для обработки кнопки сообщения
     function handleMessage(userId) {
-        // В будущем здесь будет редирект на страницу чата
-        showNotification('Функция сообщений находится в разработке', 'info');
-        // Можно также реализовать редирект на страницу чата с пользователем
-        // window.location.href = `/app/chat/${userId}/`;
+        // Создаем чат с пользователем
+        createChat(userId);
+    }
+    
+    async function createChat(userId) {
+        try {
+            const response = await fetch('/api/chat/rooms/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    user_id: userId
+                }),
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при создании чата');
+            }
+            
+            const room = await response.json();
+            window.location.href = `/chat/${room.id}/`;
+        } catch (error) {
+            console.error('Ошибка:', error);
+            showNotification('Ошибка при создании чата', 'error');
+        }
     }
     
     // Добавляем обработчики событий к кнопкам

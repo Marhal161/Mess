@@ -1,0 +1,40 @@
+FROM python:3.10-slim
+
+# Установка рабочей директории
+WORKDIR /mess
+
+# Установка переменных среды
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Установка системных зависимостей
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        python3-dev \
+        libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Создание и активация виртуального окружения
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Обновление pip
+RUN pip install --upgrade pip
+
+# Копирование файла зависимостей и установка зависимостей
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+# Копирование проекта
+COPY . .
+
+# Запуск migrations при старте
+RUN chmod +x /mess/entrypoint.sh
+
+# Открытие порта для Django
+EXPOSE 8000
+
+# Запуск приложения через entrypoint
+ENTRYPOINT ["/mess/entrypoint.sh"]

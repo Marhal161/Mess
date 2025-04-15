@@ -1,7 +1,7 @@
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
-from .views import RegisterView, LoginView, LogoutView, LoginTemplateView, RegisterTemplateView, InterestListView, HomeView, LikeUserView, ProfileTemplateView, ProfileView, ChangePasswordView
+from .views import RegisterView, LoginView, LogoutView, LoginTemplateView, RegisterTemplateView, InterestListView, HomeView, LikeUserView, ProfileTemplateView, ProfileView, ChangePasswordView, ChatListView, ChatRoomView, ChatRoomAPIView
 from . import views
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -24,6 +24,12 @@ urlpatterns = [
     
     # Обновление JWT токена
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Чаты
+    path('chat/', ChatListView.as_view(), name='chat_list'),
+    path('chat/<int:room_id>/', ChatRoomView.as_view(), name='chat_room'),
+    path('api/chat/rooms/', ChatRoomAPIView.as_view(), name='api_chat_rooms'),
+    path('api/chat/<int:room_id>/messages/', views.ChatMessagesAPIView.as_view(), name='api_chat_messages'),
 ]
 
 if settings.DEBUG:

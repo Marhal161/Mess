@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',  # Добавляем CORS заголовки
+    'channels',
 ]
 
 REST_FRAMEWORK = {
@@ -82,12 +83,15 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'mess.urls'
 
+# Удаляем абсолютный путь и используем относительный путь, который будет работать и в Docker
 TEMPLATES_DIR = os.path.join(BASE_DIR.parent, 'templates')
+# Добавляем путь, который будет работать в Docker контейнере
+DOCKER_TEMPLATES_DIR = '/mess/templates'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [TEMPLATES_DIR],
+        'DIRS': [TEMPLATES_DIR, DOCKER_TEMPLATES_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -95,6 +99,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': DEBUG,
         },
     },
 ]
@@ -156,8 +161,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Настройки статических файлов
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR.parent, 'static'),  
+    os.path.join(BASE_DIR.parent, 'static'),
+    '/mess/static/',  # Путь в Docker контейнере
 ]
+
+# Добавляем STATIC_ROOT для collectstatic
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -175,3 +184,16 @@ CSRF_COOKIE_SECURE = False  # в production должно быть True
 CSRF_COOKIE_HTTPONLY = False  # False чтобы JS мог читать токен
 CSRF_USE_SESSIONS = False  # False чтобы использовать cookie вместо сессий
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
+
+# Настройка ASGI
+ASGI_APPLICATION = 'mess.asgi.application'
+
+# Настройка канальных слоев для Redis
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}

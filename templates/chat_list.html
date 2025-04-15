@@ -1,0 +1,75 @@
+<!-- templates/chat/chat_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Чаты - Mess{% endblock %}
+
+{% block content %}
+<div class="chat-list-container">
+    <h1>Ваши чаты</h1>
+    <div id="chat-rooms-list">
+        <!-- Здесь будет список чатов -->
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Загружаем список чатов
+    fetchChatRooms();
+    
+    async function fetchChatRooms() {
+        try {
+            const response = await fetch('/api/chat/rooms/', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке чатов');
+            }
+            
+            const rooms = await response.json();
+            displayRooms(rooms);
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+    
+    function displayRooms(rooms) {
+        const container = document.getElementById('chat-rooms-list');
+        container.innerHTML = '';
+        
+        if (rooms.length === 0) {
+            container.innerHTML = '<p>У вас пока нет чатов</p>';
+            return;
+        }
+        
+        rooms.forEach(room => {
+            const roomDiv = document.createElement('div');
+            roomDiv.className = 'chat-room-item';
+            
+            // Получаем другого участника чата (не текущего пользователя)
+            const otherParticipant = room.participants.find(p => p.id !== currentUserId);
+            
+            roomDiv.innerHTML = `
+                <a href="/chat/${room.id}/" class="chat-room-link">
+                    <div class="chat-room-avatar">
+                        ${otherParticipant.avatar ? 
+                          `<img src="${otherParticipant.avatar}" alt="Avatar">` : 
+                          `<div class="avatar-placeholder">${otherParticipant.username[0]}</div>`}
+                    </div>
+                    <div class="chat-room-info">
+                        <h3>${otherParticipant.first_name} ${otherParticipant.last_name}</h3>
+                        <p class="last-message">${room.last_message || 'Нет сообщений'}</p>
+                    </div>
+                </a>
+            `;
+            
+            container.appendChild(roomDiv);
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,142 @@
+<!-- templates/chat/chat_room.html -->
+{% extends 'base.html' %}
+
+{% block title %}Чат - Mess{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    {% if error %}
+        <div class="error-message">{{ error }}</div>
+    {% else %}
+        <div class="chat-header">
+            <div class="chat-title">
+                {% for participant in room.participants.all %}
+                    {% if participant != request.user %}
+                        <h1>{{ participant.first_name }} {{ participant.last_name }}</h1>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="messages-container" id="chat-messages">
+            <!-- Сообщения будут загружены через JavaScript -->
+        </div>
+        
+        <div class="message-input-container">
+            <form id="chat-form">
+                <input type="text" id="message-input" placeholder="Введите сообщение..." autocomplete="off">
+                <button type="submit" id="send-button">Отправить</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roomId = {{ room.id }};
+    const currentUserId = {{ request.user.id }};
+    let chatSocket;
+    
+    // Инициализация WebSocket соединения
+    function setupWebSocket() {
+        chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + roomId + '/'
+        );
+        
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket соединение установлено');
+        };
+        
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            addMessage(data.message, data.user_id);
+        };
+        
+        chatSocket.onclose = function(e) {
+            console.log('WebSocket соединение прервано');
+            setTimeout(function() {
+                setupWebSocket();
+            }, 2000);
+        };
+    }
+    
+    setupWebSocket();
+    
+    // Загрузка истории сообщений
+    async function loadMessages() {
+        try {
+            const response = await fetch(`/api/chat/${roomId}/messages/`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Ошибка при загрузке сообщений');
+            }
+            
+            const messages = await response.json();
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
+            
+            messages.forEach(msg => {
+                addMessage(msg.content, msg.sender.id, msg.timestamp);
+            });
+            
+            // Прокрутка к последнему сообщению
+            container.scrollTop = container.scrollHeight;
+        } catch (error) {
+            console.error('Ошибка:', error);
+        }
+    }
+    
+    // Добавление сообщения в чат
+    function addMessage(message, userId, timestamp) {
+        const container = document.getElementById('chat-messages');
+        const messageDiv = document.createElement('div');
+        
+        // Определяем, является ли сообщение входящим или исходящим
+        const isOutgoing = userId === currentUserId;
+        messageDiv.className = `message ${isOutgoing ? 'outgoing' : 'incoming'}`;
+        
+        // Форматируем время
+        let timeStr = '';
+        if (timestamp) {
+            const date = new Date(timestamp);
+            timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+            timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        messageDiv.innerHTML = `
+            <div class="message-content">${message}</div>
+            <div class="message-time">${timeStr}</div>
+        `;
+        
+        container.appendChild(messageDiv);
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    // Обработка отправки сообщения
+    document.getElementById('chat-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+        
+        if (message) {
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            
+            messageInput.value = '';
+        }
+    });
+    
+    // Загружаем историю сообщений при открытии чата
+    loadMessages();
+});
+</script>
+{% endblock %}

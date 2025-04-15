@@ -166,3 +166,11 @@ class LikesCountView(APIView):
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 
+        
+    @check_auth_tokens_api
+    def get_likes_count(request):
+        """
+        Возвращает количество лайков, полученных текущим пользователем
+        """
+        likes_count = Like.objects.filter(to_user=request.user).count()
+        return Response({'count': likes_count}) 
