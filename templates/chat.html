@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ chat_title }} - Mess</title>
+    <link rel="stylesheet" href="/static/css/chat.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <a href="{% url 'chat_rooms' %}" class="header-back">
+                    <i class="fas fa-arrow-left"></i> Назад
+                </a>
+            </div>
+            <div class="header-title">
+                {% if is_direct_chat and other_user %}
+                <div class="other-user-info">
+                    <div class="other-user-avatar">
+                        {% if other_user.avatar %}
+                            <img src="{{ other_user.avatar.url }}" alt="{{ other_user.first_name }}" width="36" height="36" style="border-radius: 50%">
+                        {% else %}
+                            {{ other_user.first_name|slice:":1" }}{{ other_user.last_name|slice:":1" }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        {{ other_user.first_name }} {{ other_user.last_name }}
+                    </div>
+                </div>
+                {% else %}
+                {{ chat_title }}
+                {% endif %}
+            </div>
+            <div style="width: 30px;"></div> <!-- Для выравнивания центрального элемента -->
+        </div>
+        <div class="chat-container">
+            <div class="messages-preloader" id="messages-preloader">
+                <div class="preloader-spinner"></div>
+                <div>Загрузка сообщений...</div>
+            </div>
+            <div class="messages-container" id="messages-container">
+                <!-- Сообщения будут добавляться здесь -->
+            </div>
+            <div class="message-form">
+                <textarea class="message-input" id="message-input" placeholder="Введите сообщение..." autocomplete="off"></textarea>
+                <button class="send-button" id="send-button"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Получаем информацию о текущем пользователе
+        const currentUserId = {{ user.id|default:"null" }};
+        const currentUsername = "{{ user.username|default:"" }}";
+        const roomName = "{{ room_name }}";
+        
+        // Создаем WebSocket соединение
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${roomName}/`;
+        const chatSocket = new WebSocket(wsUrl);
+        
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const messagesPreloader = document.getElementById('messages-preloader');
+        
+        // Инициализация
+        let messagesLoaded = false;
+        
+        // Загрузка истории сообщений
+        async function loadChatHistory() {
+            try {
+                const response = await fetch(`/app/api/chat/messages/${roomName}/`);
+                
+                if (!response.ok) {
+                    throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Очищаем контейнер сообщений
+                messagesContainer.innerHTML = '';
+                
+                // Отображаем все сообщения
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        displayMessage({
+                            message: msg.message,
+                            sender: msg.user.username,
+                            sender_id: msg.user.id,
+                            timestamp: msg.timestamp
+                        });
+                    });
+                    
+                    // Прокрутка вниз после загрузки сообщений
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                } else {
+                    displaySystemMessage('Нет сообщений. Начните общение прямо сейчас!');
+                }
+                
+                // Скрываем прелоадер
+                messagesPreloader.style.display = 'none';
+                messagesContainer.style.display = 'flex';
+                
+                messagesLoaded = true;
+            } catch (error) {
+                console.error('Ошибка при загрузке истории сообщений:', error);
+                displaySystemMessage('Не удалось загрузить историю сообщений. Попробуйте обновить страницу.');
+                
+                // Скрываем прелоадер в любом случае
+                messagesPreloader.style.display = 'none';
+                messagesContainer.style.display = 'flex';
+            }
+        }
+        
+        // Обработка получения сообщения
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            displayMessage(data);
+        };
+        
+        // Обработка ошибки соединения
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+            displaySystemMessage('Соединение с сервером прервано. Обновите страницу для переподключения.');
+        };
+        
+        // Обработка успешного соединения
+        chatSocket.onopen = function(e) {
+            console.log('WebSocket connection established');
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            
+            // Загружаем историю сообщений после установки соединения
+            loadChatHistory();
+        };
+        
+        // Отправка сообщения при нажатии на кнопку
+        sendButton.onclick = function(e) {
+            sendMessage();
+        };
+        
+        // Отправка сообщения при нажатии Enter (без Shift)
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            
+            // Масштабирование текстового поля по содержимому
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+        
+        // Функция отправки сообщения
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        }
+        
+        // Функция отображения сообщения
+        function displayMessage(data) {
+            const message = data.message;
+            const sender = data.sender;
+            const senderId = data.sender_id;
+            const timestamp = data.timestamp;
+            
+            const messageDiv = document.createElement('div');
+            
+            // Определяем класс сообщения (свое, системное или другого пользователя)
+            if (sender === 'system') {
+                messageDiv.className = 'message system';
+            } else if (senderId === currentUserId) {
+                messageDiv.className = 'message self';
+            } else {
+                messageDiv.className = 'message';
+            }
+            
+            // Создаем HTML для сообщения
+            if (sender === 'system') {
+                messageDiv.innerHTML = `
+                    <div class="message-content">
+                        ${message}
+                    </div>
+                `;
+            } else {
+                const avatarText = sender.substring(0, 2).toUpperCase();
+                messageDiv.innerHTML = `
+                    <div class="avatar">${avatarText}</div>
+                    <div class="message-content">
+                        <div>${message}</div>
+                        <div class="message-meta">
+                            <span>${sender}</span>
+                            <span class="timestamp">${formatTimestamp(timestamp)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            
+            // Прокрутка вниз
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Функция отображения системного сообщения
+        function displaySystemMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${message}
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Форматирование временной метки
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            
+            // Получаем текущую дату
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            // Форматируем дату
+            let dateStr = '';
+            if (date.toDateString() === today.toDateString()) {
+                dateStr = 'Сегодня';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                dateStr = 'Вчера';
+            } else {
+                dateStr = date.toLocaleDateString('ru-RU');
+            }
+            
+            // Форматируем время
+            const timeStr = date.toLocaleTimeString('ru-RU', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            return `${dateStr}, ${timeStr}`;
+        }
+    </script>
+</body>
+</html> 

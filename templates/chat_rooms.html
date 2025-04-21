@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сообщения - Mess</title>
+    <link rel="stylesheet" href="/static/css/chat_rooms.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="user-info">
+            Вы вошли как: 
+            <span>{{ user.username }}</span>
+            {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+            {% else %}
+                <div class="user-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+            {% endif %}
+            <a href="{% url 'home' %}"><i class="fas fa-home"></i> На главную</a>
+        </div>
+        
+        <h1>Сообщения</h1>
+        
+        <!-- Личные чаты -->
+        <h2>Личные сообщения</h2>
+        
+        {% if direct_chats %}
+        <div class="direct-chat-list">
+            {% for chat in direct_chats %}
+            <a href="{% url 'chat_room' room_name=chat.id %}" class="direct-chat-card">
+                <div class="direct-chat-avatar">
+                    {% if chat.user.avatar %}
+                        <img src="{{ chat.user.avatar.url }}" alt="{{ chat.name }}" width="50" height="50" style="border-radius: 50%">
+                    {% else %}
+                        {{ chat.name|slice:":2"|upper }}
+                    {% endif %}
+                </div>
+                <div class="direct-chat-info">
+                    <div class="direct-chat-name">
+                        {{ chat.name }}
+                        <div class="direct-chat-time">
+                            {% if chat.last_message_time %}
+                                {{ chat.last_message_time|date:"H:i" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="direct-chat-message">
+                        {% if chat.last_message %}
+                            {{ chat.last_message|truncatechars:40 }}
+                        {% else %}
+                            Нет сообщений
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-chats">
+            <i class="fas fa-comments" style="font-size: 36px; margin-bottom: 15px; color: #4A76A8;"></i>
+            <p>У вас пока нет личных сообщений.</p>
+            <p>Начните общение с кем-нибудь на <a href="/app">главной странице</a>.</p>
+        </div>
+        {% endif %}
+        
+        <!-- Общие комнаты -->
+        <h2>Общие чаты</h2>
+        
+        <div class="rooms-list">
+            {% for room in public_rooms %}
+            <div class="room-card">
+                <div class="room-header">{{ room.name }}</div>
+                <div class="room-body">
+                    <p class="room-description">
+                        {% if room.id == 'general' %}
+                        Общий чат для всех пользователей. Обсуждайте любые темы и знакомьтесь с новыми людьми.
+                        {% elif room.id == 'support' %}
+                        Получите помощь от нашей команды поддержки. Задайте вопрос и мы постараемся ответить как можно скорее.
+                        {% elif room.id == 'random' %}
+                        Место для обсуждения случайных тем, мемов и всего, что не вписывается в другие категории.
+                        {% else %}
+                        Присоединяйтесь к этой комнате для общения с другими пользователями.
+                        {% endif %}
+                    </p>
+                    <a href="{% url 'chat_room' room_name=room.id %}" class="join-button">
+                        <i class="fas fa-sign-in-alt"></i> Присоединиться
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <a href="{% url 'home' %}" class="back-link">
+            <i class="fas fa-arrow-left"></i> Вернуться на главную
+        </a>
+    </div>
+</body>
+</html> 

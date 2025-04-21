@@ -29,6 +29,7 @@
             <nav class="main-nav">
                 {% if user.is_authenticated %}
                     <a href="/app" class="nav-link"><i class="fas fa-home"></i> Главная</a>
+                    <a href="/app/chat/" class="nav-link"><i class="fas fa-comments"></i> Сообщения</a>
                     <a href="/app/profile/" class="nav-link"><i class="fas fa-user"></i> Профиль</a>
                     <a href="/app/logout/" class="nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Выйти</a>
                 {% else %}

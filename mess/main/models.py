@@ -55,3 +55,18 @@ class Like(models.Model):
         
     def __str__(self):
         return f"{self.from_user.username} лайкнул {self.to_user.username}"
+
+class ChatMessage(models.Model):
+    """
+    Модель для хранения сообщений чата
+    """
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages')
+    room_name = models.CharField(max_length=100)
+    message = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
+        
+    def __str__(self):
+        return f"{self.user.username}: {self.message[:50]}"

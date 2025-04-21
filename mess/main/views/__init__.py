@@ -10,4 +10,5 @@ from .AuthTemplateView import LoginTemplateView, RegisterTemplateView
 from .InterestView import InterestListView
 from .HomeView import HomeView
 from .LikeView import LikeUserView, LikesCountView
-from .ProfileView import ProfileTemplateView, ProfileView, ChangePasswordView 
+from .ProfileView import ProfileTemplateView, ProfileView, ChangePasswordView
+from .ChatView import ChatRoomView, ChatRoomListView 

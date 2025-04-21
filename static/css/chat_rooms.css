@@ -1,0 +1,361 @@
+/* Переменные страницы чатов */
+:root {
+    --room-primary: #4A76A8;
+    --room-primary-light: #5b8bc1;
+    --room-primary-dark: #3d6293;
+    --room-bg: #F0F2F5;
+    --room-text: #333333;
+    --room-text-light: #666666;
+    --room-card-bg: #FFFFFF;
+    --room-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    --room-hover-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    --room-transition: all 0.3s ease;
+    --room-header-bg: #4A76A8;
+    --room-unread-badge: #F44336;
+    --room-online-dot: #42B72A;
+}
+
+/* Общие стили */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--room-bg);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    color: var(--room-text);
+}
+
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px 20px;
+}
+
+h1 {
+    color: var(--room-primary);
+    text-align: center;
+    margin-bottom: 30px;
+    font-size: 32px;
+    font-weight: 700;
+    position: relative;
+}
+
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background-color: var(--room-primary-light);
+    border-radius: 2px;
+}
+
+h2 {
+    color: var(--room-primary);
+    margin: 40px 0 20px;
+    font-size: 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+h2::before, h2::after {
+    content: '';
+    height: 1px;
+    background-color: #e1e1e1;
+    flex-grow: 1;
+}
+
+/* Информация пользователя */
+.user-info {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 30px;
+    color: var(--room-text-light);
+    font-size: 14px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--room-primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 16px;
+    margin-left: 10px;
+}
+
+.user-info a {
+    color: var(--room-primary);
+    text-decoration: none;
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: var(--room-transition);
+}
+
+.user-info a:hover {
+    background-color: rgba(74, 118, 168, 0.1);
+}
+
+/* Список общих комнат */
+.rooms-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.room-card {
+    background-color: var(--room-card-bg);
+    border-radius: 12px;
+    box-shadow: var(--room-shadow);
+    overflow: hidden;
+    transition: var(--room-transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--room-hover-shadow);
+}
+
+.room-header {
+    background-color: var(--room-header-bg);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.room-body {
+    padding: 20px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.room-description {
+    color: var(--room-text-light);
+    margin-bottom: 25px;
+    flex-grow: 1;
+    line-height: 1.5;
+}
+
+.join-button {
+    display: inline-block;
+    background-color: var(--room-primary);
+    color: white;
+    text-decoration: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-align: center;
+    transition: var(--room-transition);
+    margin-top: auto;
+    font-weight: 500;
+}
+
+.join-button:hover {
+    background-color: var(--room-primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Список личных чатов */
+.direct-chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.direct-chat-card {
+    background-color: var(--room-card-bg);
+    border-radius: 12px;
+    box-shadow: var(--room-shadow);
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    transition: var(--room-transition);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+}
+
+.direct-chat-card:hover {
+    transform: translateX(5px);
+    box-shadow: var(--room-hover-shadow);
+}
+
+.direct-chat-card.unread::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background-color: var(--room-unread-badge);
+    border-radius: 50%;
+}
+
+.direct-chat-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: #e1e1e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: var(--room-text);
+    margin-right: 15px;
+    font-size: 20px;
+    position: relative;
+}
+
+.online-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 14px;
+    height: 14px;
+    background-color: var(--room-online-dot);
+    border: 2px solid white;
+    border-radius: 50%;
+}
+
+.direct-chat-info {
+    flex-grow: 1;
+    overflow: hidden;
+}
+
+.direct-chat-name {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--room-text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.direct-chat-message {
+    color: var(--room-text-light);
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    margin-right: 10px;
+}
+
+.direct-chat-time {
+    color: var(--room-text-light);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* Сообщение об отсутствии чатов */
+.no-chats {
+    background-color: var(--room-card-bg);
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    color: var(--room-text-light);
+    box-shadow: var(--room-shadow);
+    line-height: 1.6;
+}
+
+.no-chats a {
+    color: var(--room-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.no-chats a:hover {
+    text-decoration: underline;
+}
+
+/* Кнопка возврата */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 30px;
+    color: var(--room-primary);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: var(--room-transition);
+}
+
+.back-link:hover {
+    background-color: rgba(74, 118, 168, 0.1);
+}
+
+.back-link i {
+    font-size: 16px;
+}
+
+/* Адаптивная верстка */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px 15px;
+    }
+    
+    h1 {
+        font-size: 28px;
+    }
+    
+    h2 {
+        font-size: 20px;
+    }
+    
+    .rooms-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 15px 10px;
+    }
+    
+    h1 {
+        font-size: 24px;
+    }
+    
+    .direct-chat-avatar {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+    
+    .direct-chat-message {
+        font-size: 13px;
+    }
+    
+    .room-card {
+        border-radius: 8px;
+    }
+    
+    .room-header {
+        padding: 12px 15px;
+        font-size: 16px;
+    }
+    
+    .room-body {
+        padding: 15px;
+    }
+} 

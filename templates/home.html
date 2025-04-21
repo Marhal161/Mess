@@ -298,10 +298,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Функция для обработки кнопки сообщения
     function handleMessage(userId) {
-        // В будущем здесь будет редирект на страницу чата
-        showNotification('Функция сообщений находится в разработке', 'info');
-        // Можно также реализовать редирект на страницу чата с пользователем
-        // window.location.href = `/app/chat/${userId}/`;
+        // Создаем имя комнаты для личного чата
+        // Используем currentUserId и userId в возрастающем порядке, 
+        // чтобы для одних и тех же пользователей всегда была одна комната
+        const roomUsers = [{{ user.id }}, parseInt(userId)].sort((a, b) => a - b);
+        const roomName = `direct_${roomUsers[0]}_${roomUsers[1]}`;
+        
+        // Переходим в личный чат
+        window.location.href = `/app/chat/${roomName}/`;
     }
     
     // Добавляем обработчики событий к кнопкам
