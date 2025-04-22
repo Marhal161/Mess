@@ -1,29 +1,60 @@
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Мой профиль - Mess{% endblock %}
+{% block title %}{% if is_own_profile %}Мой профиль{% else %}Профиль {{ profile_user.first_name }} {{ profile_user.last_name }}{% endif %} - Mess{% endblock %}
 
 {% block extra_css %}
-
 <link rel="stylesheet" href="{% static 'css/profile.css' %}">
+<style>
+/* Дополнительные стили для отладки */
+.debug-info {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #dee2e6;
+    font-family: monospace;
+    white-space: pre-wrap;
+}
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="profile-container">
+    {% if debug %}
+    <div class="debug-info">
+        <p>Debug Info:</p>
+        <p>is_own_profile: {{ is_own_profile }}</p>
+        <p>profile_user_id: {{ profile_user.id }}</p>
+        <p>current_user_id: {{ request.user.id }}</p>
+    </div>
+    {% endif %}
+
     <div class="profile-header">
         <div class="profile-info-main">
             <div id="profile-avatar" class="profile-avatar">
-                <!-- Аватар будет добавлен через JavaScript -->
+                {% if profile_user.avatar %}
+                    <img src="{{ profile_user.avatar.url }}" alt="Аватар">
+                {% else %}
+                    <div class="profile-image-placeholder">
+                        <span>{{ profile_user.first_name.0 }}{{ profile_user.last_name.0 }}</span>
+                    </div>
+                {% endif %}
             </div>
             <div class="profile-text-info">
-                <h1 id="profile-name" class="profile-name"></h1>
-                <p id="profile-username" class="profile-username"></p>
-                <div id="profile-likes-count" class="profile-likes-count"></div>
+                <h1 id="profile-name" class="profile-name">{{ profile_user.first_name }} {{ profile_user.last_name }}</h1>
+                <p id="profile-username" class="profile-username">@{{ profile_user.username }}</p>
+                <div id="profile-likes-count" class="likes-info"></div>
             </div>
         </div>
         <div class="profile-actions">
+            {% if is_own_profile %}
             <button id="edit-profile-btn" class="btn-primary"><i class="fas fa-edit"></i> Редактировать</button>
             <button id="change-password-btn" class="btn-secondary"><i class="fas fa-key"></i> Сменить пароль</button>
             <button id="delete-account-btn" class="btn-danger"><i class="fas fa-trash"></i> Удалить аккаунт</button>
+            {% else %}
+            <button id="like-profile-btn" class="btn-like"><i class="fas fa-heart"></i> Нравится</button>
+            <button id="message-btn" class="btn-message" data-user-id="{{ profile_user.id }}"><i class="fas fa-comment"></i> Сообщение</button>
+            {% endif %}
         </div>
     </div>
     
@@ -31,30 +62,55 @@
         <div class="profile-section">
             <h3>Контактная информация</h3>
             <div class="contact-info">
-                <p class="profile-email" id="profile-email"></p>
-                <p class="profile-phone" id="profile-phone"></p>
+                <p class="profile-email" id="profile-email">{{ profile_user.email }}</p>
+                <p class="profile-phone" id="profile-phone">{{ profile_user.phone|default:"Телефон не указан" }}</p>
             </div>
             <div class="profile-meta">
-                <span class="profile-gender" id="profile-gender"></span>
-                <span class="profile-course" id="profile-kurs"></span>
+                <span class="profile-gender" id="profile-gender">
+                    {% if profile_user.gender == 'male' %}
+                        Мужчина
+                    {% elif profile_user.gender == 'female' %}
+                        Женщина
+                    {% else %}
+                        Пол не указан
+                    {% endif %}
+                </span>
+                <span class="profile-course" id="profile-kurs">
+                    {% if profile_user.kurs %}
+                        {{ profile_user.kurs }} курс
+                    {% else %}
+                        Курс не указан
+                    {% endif %}
+                </span>
             </div>
         </div>
         
         <div class="profile-section">
             <h3>О себе</h3>
             <div class="profile-bio" id="profile-bio">
-                <!-- Информация о пользователе будет добавлена через JavaScript -->
+                {% if profile_user.bio %}
+                    {{ profile_user.bio }}
+                {% else %}
+                    Биография не указана
+                {% endif %}
             </div>
         </div>
         
         <div class="profile-section">
             <h3>Интересы</h3>
             <div class="profile-interests" id="profile-interests">
-                <!-- Интересы будут добавлены через JavaScript -->
+                {% if profile_user.interests.all %}
+                    {% for interest in profile_user.interests.all %}
+                        <span class="interest-tag">{{ interest.name }}</span>
+                    {% endfor %}
+                {% else %}
+                    <p>Интересы не указаны</p>
+                {% endif %}
             </div>
         </div>
     </div>
     
+    {% if is_own_profile %}
     <div class="profile-content hidden" id="profile-edit">
         <form id="profile-edit-form">
             <div class="form-section">
@@ -223,6 +279,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
     
     <!-- Уведомления -->
     <div class="notification" id="notification" style="display: none;"></div>
@@ -230,5 +287,174 @@
 {% endblock %}
 
 {% block extra_scripts %}
+{% if is_own_profile %}
 <script src="{% static 'js/profile.js' %}"></script>
+{% else %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ID пользователя, чей профиль просматривается
+    const profileUserId = '{{ profile_user.id }}';
+    // ID текущего пользователя
+    const currentUserId = '{{ request.user.id }}';
+    
+    console.log('Просмотр профиля пользователя:', profileUserId);
+    console.log('Текущий пользователь:', currentUserId);
+    
+    // Обработчик кнопки "Нравится"
+    const likeBtn = document.getElementById('like-profile-btn');
+    if (likeBtn) {
+        likeBtn.addEventListener('click', async function() {
+            try {
+                const accessToken = getCookie('access_token');
+                const csrfToken = getCookie('csrftoken');
+                
+                const headers = {};
+                
+                if (accessToken) {
+                    headers['Authorization'] = `Bearer ${accessToken}`;
+                }
+                
+                if (csrfToken) {
+                    headers['X-CSRFToken'] = csrfToken;
+                    headers['Content-Type'] = 'application/json';
+                }
+                
+                console.log('Like Headers:', headers);
+                
+                // Определяем тип действия (лайк или отмена лайка)
+                const isLiked = likeBtn.classList.contains('btn-liked');
+                const method = isLiked ? 'DELETE' : 'POST';
+                
+                console.log('Making request to:', `/app/api/like/${profileUserId}/`, 'Method:', method);
+                
+                const response = await fetch(`/app/api/like/${profileUserId}/`, {
+                    method: method,
+                    headers: headers,
+                    credentials: 'include'
+                });
+                
+                console.log('Like Response Status:', response.status);
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        console.error('Ошибка авторизации при выполнении лайка');
+                        showNotification('Ошибка авторизации', 'error');
+                        return;
+                    }
+                    throw new Error(`Ошибка ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Like Response Data:', data);
+                
+                // Переключаем класс кнопки
+                if (isLiked) {
+                    likeBtn.classList.remove('btn-liked');
+                    likeBtn.classList.add('btn-like');
+                    showNotification('Вы отменили лайк', 'info');
+                } else {
+                    likeBtn.classList.remove('btn-like');
+                    likeBtn.classList.add('btn-liked');
+                    showNotification('Профиль понравился!', 'success');
+                }
+            } catch (error) {
+                console.error('Ошибка при обработке лайка:', error);
+                showNotification('Произошла ошибка при обработке запроса', 'error');
+            }
+        });
+    }
+    
+    // Обработчик кнопки "Сообщение"
+    const messageBtn = document.getElementById('message-btn');
+    if (messageBtn) {
+        messageBtn.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            // Создаем имя комнаты для личного чата
+            const roomUsers = [parseInt(currentUserId), parseInt(userId)].sort((a, b) => a - b);
+            const roomName = `direct_${roomUsers[0]}_${roomUsers[1]}`;
+            
+            // Переходим в личный чат
+            window.location.href = `/app/chat/${roomName}/`;
+        });
+    }
+    
+    // Функция для получения CSRF токена из кук
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Функция для отображения уведомлений
+    function showNotification(message, type) {
+        let notificationEl = document.querySelector('.notification');
+        
+        if (!notificationEl) {
+            notificationEl = document.createElement('div');
+            notificationEl.className = `notification ${type}`;
+            document.body.appendChild(notificationEl);
+        } else {
+            notificationEl.className = `notification ${type}`;
+        }
+        
+        notificationEl.textContent = message;
+        notificationEl.style.display = 'block';
+        notificationEl.classList.add('show');
+        
+        setTimeout(() => {
+            notificationEl.classList.remove('show');
+            setTimeout(() => {
+                notificationEl.style.display = 'none';
+            }, 300);
+        }, 3000);
+    }
+    
+    // Проверка лайка при загрузке страницы
+    async function checkLikeStatus() {
+        try {
+            const accessToken = getCookie('access_token');
+            const csrfToken = getCookie('csrftoken');
+            
+            const headers = {};
+            
+            if (accessToken) {
+                headers['Authorization'] = `Bearer ${accessToken}`;
+            }
+            
+            if (csrfToken) {
+                headers['X-CSRFToken'] = csrfToken;
+            }
+            
+            const likeResponse = await fetch(`/app/api/like/check/${profileUserId}/`, {
+                method: 'GET',
+                headers: headers,
+                credentials: 'include'
+            });
+            
+            if (likeResponse.ok) {
+                const likeData = await likeResponse.json();
+                if (likeData.is_liked && likeBtn) {
+                    likeBtn.classList.remove('btn-like');
+                    likeBtn.classList.add('btn-liked');
+                }
+            }
+        } catch (error) {
+            console.error('Ошибка при проверке статуса лайка:', error);
+        }
+    }
+    
+    // Запускаем проверку лайка
+    checkLikeStatus();
+});
+</script>
+{% endif %}
 {% endblock %} 

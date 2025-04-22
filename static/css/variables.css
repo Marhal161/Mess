@@ -2,7 +2,7 @@
     /* Основные цвета */
     --primary-color: #4A76A8;
     --primary-color-light: #5B8BC7;
-    --primary-color-dark: #3D639D;
+    --primary-dark: #3D639D;
     --secondary-color: #71AAEB;
     --accent-color: #FF9E00;
     
@@ -68,7 +68,7 @@
     /* Специфичные для чата */
     --online-dot: #42B72A;
     --message-radius: 18px;
-    --self-message-bg: #E3F2FD;
+    --self-message-bg: #a9dbff;
     --system-message-bg: #FFF3E0;
     --system-message-color: #BF360C;
 } 

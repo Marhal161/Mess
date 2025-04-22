@@ -165,4 +165,34 @@ class LikesCountView(APIView):
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+# Проверка, поставил ли текущий пользователь лайк другому пользователю
+class CheckLikeView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    @check_auth_tokens_api
+    def get(self, request, user_id):
+        try:
+            # Проверяем существование пользователя
+            to_user = User.objects.get(id=user_id)
+            
+            # Проверяем, существует ли лайк
+            is_liked = Like.objects.filter(from_user=request.user, to_user=to_user).exists()
+            
+            return Response({
+                "is_liked": is_liked
+            }, status=status.HTTP_200_OK)
+            
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Пользователь не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при проверке лайка: {str(e)}")
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 

@@ -10,17 +10,23 @@
         <div class="user-carousel">
             <div class="profile-card" id="current-profile" data-is-liked="{{ users.0.is_liked|yesno:'true,false' }}">
                 <div class="profile-header">
-                    <h2 class="profile-name">{{ users.0.first_name }} {{ users.0.last_name }}</h2>
+                    <h2 class="profile-name">
+                        <a href="/app/profile/{{ users.0.id }}/">{{ users.0.first_name }} {{ users.0.last_name }}</a>
+                    </h2>
                     <span class="profile-course">{{ users.0.get_kurs_display }} курс</span>
                 </div>
                 
                 <div class="profile-image-container">
                     {% if users.0.avatar %}
-                        <img src="{{ users.0.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                        <a href="/app/profile/{{ users.0.id }}/">
+                            <img src="{{ users.0.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                        </a>
                     {% else %}
-                        <div class="profile-image-placeholder">
-                            <span>{{ users.0.first_name.0 }}{{ users.0.last_name.0 }}</span>
-                        </div>
+                        <a href="/app/profile/{{ users.0.id }}/">
+                            <div class="profile-image-placeholder">
+                                <span>{{ users.0.first_name.0 }}{{ users.0.last_name.0 }}</span>
+                            </div>
+                        </a>
                     {% endif %}
                 </div>
                 
@@ -62,17 +68,23 @@
             {% for user in users|slice:"1:" %}
                 <div class="profile-card hidden" data-user-id="{{ user.id }}" data-is-liked="{{ user.is_liked|yesno:'true,false' }}">
                     <div class="profile-header">
-                        <h2 class="profile-name">{{ user.first_name }} {{ user.last_name }}</h2>
+                        <h2 class="profile-name">
+                            <a href="/app/profile/{{ user.id }}/">{{ user.first_name }} {{ user.last_name }}</a>
+                        </h2>
                         <span class="profile-course">{{ user.get_kurs_display }} курс</span>
                     </div>
                     
                     <div class="profile-image-container">
                         {% if user.avatar %}
-                            <img src="{{ user.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                            <a href="/app/profile/{{ user.id }}/">
+                                <img src="{{ user.avatar.url }}" alt="Аватар пользователя" class="profile-image">
+                            </a>
                         {% else %}
-                            <div class="profile-image-placeholder">
-                                <span>{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
-                            </div>
+                            <a href="/app/profile/{{ user.id }}/">
+                                <div class="profile-image-placeholder">
+                                    <span>{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                                </div>
+                            </a>
                         {% endif %}
                     </div>
                     

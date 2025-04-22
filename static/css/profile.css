@@ -11,13 +11,14 @@
 .profile-header {
     background-color: var(--background-primary);
     border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
+    padding: var(--spacing-xl);
     box-shadow: var(--shadow-md);
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
     display: flex;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: var(--spacing-md);
+    gap: var(--spacing-lg);
+    position: relative;
 }
 
 .profile-header h1 {
@@ -34,58 +35,87 @@
 }
 
 .profile-actions button {
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 0.6rem 1.25rem;
     border-radius: var(--radius-md);
     border: none;
     color: white;
     font-weight: 500;
     font-size: var(--font-size-sm);
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: var(--spacing-sm);
     transition: all var(--transition-normal);
+    min-width: 140px;
+    height: auto;
+    line-height: 1.5;
 }
 
-.profile-actions .btn-primary {
+/* Стили для кнопок в профиле другого пользователя */
+.btn-like, 
+.btn-liked,
+.btn-message {
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    border: none;
+    color: white;
+    font-weight: 500;
+    font-size: var(--font-size-md);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    transition: all var(--transition-normal);
+    box-shadow: var(--shadow-md);
+    min-width: 150px;
+    height: auto;
+    line-height: 1.5;
+}
+
+.btn-like {
     background-color: var(--primary-color);
 }
 
-.profile-actions .btn-primary:hover {
+.btn-like:hover {
     background-color: var(--primary-dark);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
 }
 
-.profile-actions .btn-secondary {
-    background-color: var(--secondary-color);
+.btn-liked {
+    background-color: var(--accent-color);
 }
 
-.profile-actions .btn-secondary:hover {
-    background-color: #3FD1B0;
-    transform: translateY(-2px);
+.btn-liked:hover {
+    background-color: #E03547;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
 }
 
-.profile-actions .btn-danger {
-    background-color: var(--danger-color);
+.btn-message {
+    background-color: #5FBA7D;
 }
 
-.profile-actions .btn-danger:hover {
-    background-color: #dc2626;
-    transform: translateY(-2px);
+.btn-message:hover {
+    background-color: #4A9E6A;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
 }
 
-/* Секции профиля */
+/* Улучшенные стили секций профиля */
 .profile-section {
     background-color: var(--background-primary);
     border-radius: var(--radius-lg);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-md);
     padding: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     transition: all 0.3s ease;
 }
 
 .profile-section:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
 }
 
@@ -93,9 +123,9 @@
     color: var(--text-primary);
     font-size: var(--font-size-lg);
     margin-top: 0;
-    margin-bottom: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
     border-bottom: 1px solid var(--border-color);
-    padding-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-md);
     font-weight: 600;
 }
 
@@ -106,23 +136,28 @@
     align-items: flex-start;
 }
 
-.profile-avatar-container {
-    flex-shrink: 0;
+.profile-info-main {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
+    flex: 1;
 }
 
 .profile-avatar {
-    width: 160px;
-    height: 160px;
+    flex-shrink: 0;
+    width: 150px;
+    height: 150px;
     border-radius: 50%;
     overflow: hidden;
     background-color: var(--primary-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 64px;
+    font-size: 54px;
     color: var(--primary-color);
     border: 4px solid var(--primary-color);
-    box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
 }
 
 .profile-avatar img {
@@ -131,82 +166,119 @@
     object-fit: cover;
 }
 
-.profile-details {
-    flex-grow: 1;
-    margin-top: var(--spacing-sm);
+.profile-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 54px;
+    font-weight: 600;
+    color: var(--primary-color);
 }
 
-.profile-details h2 {
+.profile-text-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.profile-name {
+    font-size: var(--font-size-2xl);
     color: var(--text-primary);
-    font-size: var(--font-size-xl);
-    margin-top: 0;
-    margin-bottom: var(--spacing-xs);
+    margin: 0;
     font-weight: 700;
+    line-height: 1.2;
 }
 
 .profile-username {
-    color: var(--primary-color);
-    font-weight: 500;
-    margin: var(--spacing-xs) 0;
-    font-size: var(--font-size-md);
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Контактная информация */
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    background-color: var(--background-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .profile-email,
 .profile-phone {
-    color: var(--text-secondary);
-    margin: var(--spacing-xs) 0;
-    font-size: var(--font-size-md);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--spacing-md);
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+    padding: var(--spacing-sm);
+    background-color: var(--background-primary);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-xs);
 }
 
 .profile-email:before {
     content: '\f0e0';
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
-    color: var(--text-secondary);
+    color: var(--primary-color);
+    font-size: 1.1em;
 }
 
 .profile-phone:before {
     content: '\f095';
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
-    color: var(--text-secondary);
+    color: var(--primary-color);
+    font-size: 1.1em;
 }
 
+/* Метаданные профиля */
 .profile-meta {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-lg);
-    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
     background-color: var(--background-secondary);
-    padding: 10px 16px;
     border-radius: var(--radius-md);
-    display: inline-flex;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
 }
 
 .profile-gender,
 .profile-course {
-    color: var(--text-secondary);
-    font-size: var(--font-size-sm);
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
+    color: var(--text-primary);
     font-weight: 500;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--background-primary);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-xs);
 }
 
 .profile-gender:before {
     content: '\f228';
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
-    color: var(--text-secondary);
+    color: var(--primary-color);
+    font-size: 1.1em;
 }
 
 .profile-course:before {
     content: '\f19d';
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
-    color: var(--text-secondary);
+    color: var(--primary-color);
+    font-size: 1.1em;
 }
 
 /* Биография пользователя */
@@ -214,36 +286,41 @@
     color: var(--text-secondary);
     line-height: 1.6;
     background-color: var(--background-secondary);
-    padding: var(--spacing-md);
+    padding: var(--spacing-lg);
     border-radius: var(--radius-md);
     font-style: italic;
+    box-shadow: var(--shadow-sm);
 }
 
 /* Интересы пользователя */
 .profile-interests {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
+    background-color: var(--background-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .interest-tag {
     background-color: var(--primary-light);
     color: var(--primary-color);
-    padding: 6px 14px;
+    padding: 8px 16px;
     border-radius: 20px;
     font-size: var(--font-size-sm);
     font-weight: 500;
     transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.1);
+    box-shadow: var(--shadow-xs);
 }
 
 .interest-tag:hover {
     background-color: var(--primary-color);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.2);
+    box-shadow: var(--shadow-md);
 }
 
 /* Форма редактирования */
@@ -632,23 +709,58 @@
 
 /* Адаптивность */
 @media (max-width: 768px) {
+    .profile-container {
+        padding: var(--spacing-md);
+    }
+    
     .profile-header {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        text-align: center;
+        padding: var(--spacing-lg);
+    }
+    
+    .profile-info-main {
+        flex-direction: column;
+        gap: var(--spacing-lg);
+        text-align: center;
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    .profile-text-info {
+        align-items: center;
     }
     
     .profile-actions {
         width: 100%;
         justify-content: center;
+        gap: var(--spacing-md);
     }
     
-    .profile-info {
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
+    .profile-actions button {
+        min-width: 180px;
+    }
+
+    .btn-like, 
+    .btn-liked,
+    .btn-message {
+        min-width: 200px;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .profile-section {
+        padding: var(--spacing-md);
     }
     
     .profile-meta {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: center;
+    }
+    
+    .profile-gender,
+    .profile-course {
+        width: 100%;
         justify-content: center;
     }
     
@@ -668,7 +780,33 @@
 
 @media (max-width: 480px) {
     .profile-container {
-        padding: var(--spacing-md);
+        padding: var(--spacing-sm);
+    }
+    
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        font-size: 40px;
+    }
+    
+    .profile-image-placeholder {
+        font-size: 40px;
+    }
+    
+    .profile-name {
+        font-size: var(--font-size-xl);
+    }
+    
+    .profile-username {
+        font-size: var(--font-size-md);
+    }
+    
+    .profile-actions button,
+    .btn-like, 
+    .btn-liked,
+    .btn-message {
+        width: 100%;
+        min-width: 100%;
     }
     
     .profile-section {
@@ -949,4 +1087,34 @@
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     color: var(--primary-color);
+}
+
+.profile-actions .btn-primary {
+    background-color: var(--primary-color);
+}
+
+.profile-actions .btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.profile-actions .btn-secondary {
+    background-color: var(--secondary-color);
+}
+
+.profile-actions .btn-secondary:hover {
+    background-color: #3FD1B0;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.profile-actions .btn-danger {
+    background-color: var(--danger-color);
+}
+
+.profile-actions .btn-danger:hover {
+    background-color: #dc2626;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
 }

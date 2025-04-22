@@ -108,13 +108,20 @@ def check_auth_tokens_api(view_func):
                 User = get_user_model()
                 request.user = User.objects.get(id=user_id)
                 logger.info(f"check_auth_tokens_api: Использован токен из заголовка для пользователя {user_id}")
-                return view_func(self, request, *args, **kwargs)
+                
+                # Запишем токен в куки для дальнейшего использования
+                response = view_func(self, request, *args, **kwargs)
+                if not access_token:
+                    logger.info("check_auth_tokens_api: Добавляем токен из заголовка в куки")
+                    response.set_cookie('access_token', token_from_header, httponly=True, samesite='Lax', max_age=86400)
+                return response
             except (TokenError, InvalidToken) as e:
                 # Если токен в заголовке недействителен, продолжаем проверять куки
                 logger.debug(f"check_auth_tokens_api: Токен в заголовке невалиден: {str(e)}")
                 # продолжаем проверку с куками
             except Exception as e:
                 logger.error(f"check_auth_tokens_api: Ошибка при проверке токена из заголовка: {str(e)}")
+                logger.error(traceback.format_exc())
                 
         # Проверка по кукам, если нет валидного токена в заголовке
         if not refresh_token:

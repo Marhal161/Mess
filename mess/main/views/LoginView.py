@@ -33,6 +33,14 @@ class LoginView(APIView):
             user = User.objects.get(email=email)
             logger.info(f"Найден пользователь с email {email}: {user.username}")
             
+            # Проверяем активность аккаунта
+            if not user.is_active:
+                logger.warning(f"Попытка входа в деактивированный аккаунт: {user.username}")
+                return Response(
+                    {"detail": "Аккаунт отключен. Обратитесь к администратору."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+                
             # Проверяем пароль
             if user.check_password(password):
                 logger.info(f"Пароль верный для пользователя {user.username}")

@@ -97,6 +97,25 @@ class ProfileTemplateView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Проверяем, передан ли параметр user_id
+        user_id = self.kwargs.get('user_id')
+        if user_id:
+            # Если да, то загружаем профиль указанного пользователя
+            try:
+                profile_user = get_object_or_404(User, id=user_id)
+                context['profile_user'] = profile_user
+                # Флаг, указывающий, что это чужой профиль
+                context['is_own_profile'] = (self.request.user.id == profile_user.id)
+            except:
+                # В случае ошибки, используем профиль текущего пользователя
+                context['profile_user'] = self.request.user
+                context['is_own_profile'] = True
+                context['error_message'] = 'Пользователь не найден'
+        else:
+            # Если нет, то это профиль текущего пользователя
+            context['profile_user'] = self.request.user
+            context['is_own_profile'] = True
+            
         return context
 
 class ProfileView(APIView):

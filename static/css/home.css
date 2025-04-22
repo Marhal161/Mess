@@ -49,6 +49,16 @@
     margin-bottom: var(--spacing-xs);
 }
 
+.profile-name a {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition-normal);
+}
+
+.profile-name a:hover {
+    color: var(--primary-color);
+}
+
 .profile-course {
     color: var(--text-secondary);
     font-size: var(--font-size-md);
@@ -81,6 +91,13 @@
     font-size: var(--font-size-2xl);
     color: var(--primary-color);
     border: 4px solid var(--primary-color);
+}
+
+.profile-image-container a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
 }
 
 /* Информация профиля */

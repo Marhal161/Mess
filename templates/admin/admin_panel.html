@@ -1,0 +1,1160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Админ-панель - Mess{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+<style>
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stat-title {
+        color: #6c757d;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #212529;
+        margin-bottom: 1rem;
+    }
+    
+    .stat-icon {
+        align-self: flex-end;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+    
+    .stat-users {
+        background-color: #4361ee;
+    }
+    
+    .stat-active {
+        background-color: #28a745;
+    }
+    
+    .stat-inactive {
+        background-color: #dc3545;
+    }
+    
+    .stat-roles {
+        background-color: #fd7e14;
+    }
+    
+    .user-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .filter-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .filter-select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+    
+    .admin-view-toggle {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .view-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #dee2e6;
+        background-color: white;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .view-btn.active {
+        background-color: #4361ee;
+        color: white;
+        border-color: #4361ee;
+    }
+    
+    .toggle-switch {
+        display: inline-block;
+        height: 24px;
+        position: relative;
+        width: 50px;
+    }
+    
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+        background-color: #28a745;
+    }
+    
+    input:checked + .toggle-slider:before {
+        transform: translateX(26px);
+    }
+    
+    .role-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        margin-right: 5px;
+        color: white;
+        background-color: #6c757d;
+    }
+    
+    .role-admin {
+        background-color: #dc3545;
+    }
+    
+    .role-moder {
+        background-color: #fd7e14;
+    }
+    
+    .role-user {
+        background-color: #6c757d;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        color: white;
+    }
+    
+    .status-active {
+        background-color: #28a745;
+    }
+    
+    .status-inactive {
+        background-color: #dc3545;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-container">
+    <div class="admin-header">
+        <div>
+            <h1 class="admin-title">Панель администратора</h1>
+            <p class="admin-subtitle">Управление пользователями и системой</p>
+        </div>
+        <div class="admin-actions">
+            <button class="admin-btn admin-btn-primary" id="refresh-btn">
+                <i class="fas fa-sync-alt"></i> Обновить
+            </button>
+        </div>
+    </div>
+    
+    <!-- Статистика -->
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-title">Всего пользователей</div>
+            <div class="stat-value">{{ users|length }}</div>
+            <div class="stat-icon stat-users">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Активные пользователи</div>
+            <div class="stat-value">{{ active_users_count }}</div>
+            <div class="stat-icon stat-active">
+                <i class="fas fa-user-check"></i>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Неактивные пользователи</div>
+            <div class="stat-value">{{ inactive_users_count }}</div>
+            <div class="stat-icon stat-inactive">
+                <i class="fas fa-user-slash"></i>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-title">Администраторы</div>
+            <div class="stat-value">{{ admin_users_count }}</div>
+            <div class="stat-icon stat-roles">
+                <i class="fas fa-user-shield"></i>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-content">
+        <div class="admin-users-section">
+            <div class="admin-section-header">
+                <div>
+                    <h2>Управление пользователями</h2>
+                    <p class="section-description">Просмотр и редактирование пользователей системы</p>
+                </div>
+                <div class="admin-search">
+                    <div class="search-container">
+                        <input type="text" id="user-search" placeholder="Поиск пользователей..." class="admin-search-input">
+                        <i class="fas fa-search"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Фильтры пользователей -->
+            <div class="user-filters">
+                <div class="filter-group">
+                    <label class="filter-label">Статус</label>
+                    <select id="status-filter" class="filter-select">
+                        <option value="all">Все</option>
+                        <option value="active">Активные</option>
+                        <option value="inactive">Неактивные</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Роль</label>
+                    <select id="role-filter" class="filter-select">
+                        <option value="all">Все</option>
+                        <option value="admin">Администраторы</option>
+                        <option value="moder">Модераторы</option>
+                        <option value="user">Обычные пользователи</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Сортировка</label>
+                    <select id="sort-filter" class="filter-select">
+                        <option value="name">По имени</option>
+                        <option value="date">По дате регистрации</option>
+                        <option value="email">По email</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Переключатель вида отображения -->
+            <div class="admin-view-toggle">
+                <button class="view-btn active" data-view="table">
+                    <i class="fas fa-list"></i> Таблица
+                </button>
+                <button class="view-btn" data-view="cards">
+                    <i class="fas fa-th-large"></i> Карточки
+                </button>
+            </div>
+            
+            <!-- Таблица пользователей -->
+            <div class="admin-table-view" id="table-view">
+                <div class="admin-table-wrapper">
+                    <table id="users-table" class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Email</th>
+                                <th>Роли</th>
+                                <th>Статус</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                                <tr class="user-row" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
+                                    <td>
+                                        <div class="user-info">
+                                            {% if user.avatar %}
+                                                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+                                            {% else %}
+                                                <div class="user-avatar-placeholder">{{ user.username.0|upper }}</div>
+                                            {% endif %}
+                                            <div class="user-name-container">
+                                                <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
+                                                <div class="username">@{{ user.username }}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="user-email">{{ user.email }}</td>
+                                    <td class="user-roles">
+                                        {% if user.roles %}
+                                            {% for role in user.roles %}
+                                            <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="role-badge role-user">User</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="user-status">
+                                        <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                            {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
+                                        </span>
+                                    </td>
+                                    <td class="user-actions">
+                                        <div class="action-buttons">
+                                            <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}" title="{% if user.is_active %}Деактивировать{% else %}Активировать{% endif %}">
+                                                <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                            </button>
+                                            <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}" title="{% if user.is_admin %}Снять админа{% else %}Сделать админом{% endif %}">
+                                                <i class="fas fa-user-shield"></i>
+                                            </button>
+                                            <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}" title="{% if user.is_moder %}Снять модера{% else %}Сделать модером{% endif %}">
+                                                <i class="fas fa-user-cog"></i>
+                                            </button>
+                                            <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}" title="Редактировать">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Вид карточками -->
+            <div class="admin-cards-view hidden" id="cards-view">
+                <div class="user-cards-grid">
+                    {% for user in users %}
+                        <div class="user-card" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
+                            <div class="user-card-header">
+                                {% if user.avatar %}
+                                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="card-avatar">
+                                {% else %}
+                                    <div class="card-avatar-placeholder">{{ user.username.0|upper }}{{ user.username.1|default:""|upper }}</div>
+                                {% endif %}
+                                <div class="card-user-info">
+                                    <h3 class="card-user-name">{{ user.first_name }} {{ user.last_name }}</h3>
+                                    <p class="card-username">@{{ user.username }}</p>
+                                </div>
+                            </div>
+                            <div class="user-card-body">
+                                <div class="card-info-row">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>{{ user.email }}</span>
+                                </div>
+                                {% if user.phone %}
+                                <div class="card-info-row">
+                                    <i class="fas fa-phone"></i>
+                                    <span>{{ user.phone }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="card-info-row">
+                                    <i class="fas fa-user-tag"></i>
+                                    <div class="card-roles">
+                                        {% if user.roles %}
+                                            {% for role in user.roles %}
+                                            <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
+                                            {% endfor %}
+                                        {% else %}
+                                            <span class="role-badge role-user">User</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="card-info-row">
+                                    <i class="fas fa-circle"></i>
+                                    <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                        {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <div class="card-actions">
+                                    <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}">
+                                        <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                    </button>
+                                    <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}">
+                                        <i class="fas fa-user-shield"></i>
+                                    </button>
+                                    <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}">
+                                        <i class="fas fa-user-cog"></i>
+                                    </button>
+                                    <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification">
+        <div class="notification-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">Уведомление</div>
+            <div class="notification-message">Сообщение уведомления</div>
+        </div>
+        <div class="notification-close">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования пользователя -->
+<div id="edit-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Редактирование пользователя</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="edit-user-form" class="admin-form">
+                <input type="hidden" id="edit-user-id">
+                
+                <div class="form-section">
+                    <h3 class="form-section-title">Основная информация</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-username">Имя пользователя</label>
+                            <input type="text" id="edit-username" class="form-control" disabled>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-email">Email</label>
+                            <input type="email" id="edit-email" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-first-name">Имя</label>
+                            <input type="text" id="edit-first-name" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-last-name">Фамилия</label>
+                            <input type="text" id="edit-last-name" class="form-control">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-phone">Телефон</label>
+                            <input type="tel" id="edit-phone" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="edit-gender">Пол</label>
+                            <select id="edit-gender" class="form-control">
+                                <option value="">Не указан</option>
+                                <option value="male">Мужской</option>
+                                <option value="female">Женский</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3 class="form-section-title">Роли и статус</h3>
+                    
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch-label">Активность аккаунта</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-is-active">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="form-hint">Если аккаунт неактивен, пользователь не сможет войти в систему</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Роли пользователя</label>
+                        <div id="edit-roles" class="roles-container">
+                            <!-- Роли будут добавлены динамически -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3 class="form-section-title">Дополнительная информация</h3>
+                    
+                    <div class="form-group">
+                        <label for="edit-bio">О себе</label>
+                        <textarea id="edit-bio" class="form-control" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="edit-kurs">Курс</label>
+                        <select id="edit-kurs" class="form-control">
+                            <option value="">Не указан</option>
+                            <option value="1">1 курс</option>
+                            <option value="2">2 курс</option>
+                            <option value="3">3 курс</option>
+                            <option value="4">4 курс</option>
+                            <option value="5">5 курс</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h3 class="form-section-title">Сброс пароля</h3>
+                    
+                    <div class="form-group">
+                        <div class="switch-container">
+                            <label class="switch-label">Сбросить пароль</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="edit-reset-password">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="password-fields" class="hidden">
+                        <div class="form-group">
+                            <label for="edit-new-password">Новый пароль</label>
+                            <input type="password" id="edit-new-password" class="form-control">
+                            <div class="form-hint">Минимум 8 символов, включая буквы и цифры</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="admin-btn admin-btn-secondary close-modal">Отмена</button>
+                    <button type="submit" class="admin-btn admin-btn-primary">Сохранить изменения</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Функции для управления отображением
+        const tableView = document.getElementById('table-view');
+        const cardsView = document.getElementById('cards-view');
+        const viewButtons = document.querySelectorAll('.view-btn');
+        
+        // Переключение между таблицей и карточками
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const viewType = this.getAttribute('data-view');
+                
+                // Удаляем active со всех кнопок
+                viewButtons.forEach(b => b.classList.remove('active'));
+                // Добавляем active на нажатую кнопку
+                this.classList.add('active');
+                
+                // Показываем нужный вид
+                if (viewType === 'table') {
+                    tableView.classList.remove('hidden');
+                    cardsView.classList.add('hidden');
+                } else if (viewType === 'cards') {
+                    tableView.classList.add('hidden');
+                    cardsView.classList.remove('hidden');
+                }
+            });
+        });
+        
+        // Фильтрация пользователей
+        const statusFilter = document.getElementById('status-filter');
+        const roleFilter = document.getElementById('role-filter');
+        const sortFilter = document.getElementById('sort-filter');
+        const searchInput = document.getElementById('user-search');
+        
+        // Функция для фильтрации пользователей
+        function filterUsers() {
+            const statusValue = statusFilter.value;
+            const roleValue = roleFilter.value;
+            const searchText = searchInput.value.toLowerCase();
+            
+            // Получаем все строки пользователей и карточки
+            const userRows = document.querySelectorAll('.user-row');
+            const userCards = document.querySelectorAll('.user-card');
+            
+            // Фильтруем и сортируем строки таблицы
+            userRows.forEach(row => {
+                const status = row.getAttribute('data-status');
+                const roles = row.getAttribute('data-roles').split(',');
+                const username = row.querySelector('.username').textContent.toLowerCase();
+                const name = row.querySelector('.name').textContent.toLowerCase();
+                const email = row.querySelector('.user-email').textContent.toLowerCase();
+                
+                let showRow = true;
+                
+                // Фильтр по статусу
+                if (statusValue !== 'all' && status !== statusValue) {
+                    showRow = false;
+                }
+                
+                // Фильтр по роли
+                if (roleValue !== 'all') {
+                    if (roleValue === 'admin' && !roles.includes('Admin')) {
+                        showRow = false;
+                    } else if (roleValue === 'moder' && !roles.includes('Moder')) {
+                        showRow = false;
+                    } else if (roleValue === 'user' && (roles.includes('Admin') || roles.includes('Moder'))) {
+                        showRow = false;
+                    }
+                }
+                
+                // Поиск по тексту
+                if (searchText && !(username.includes(searchText) || name.includes(searchText) || email.includes(searchText))) {
+                    showRow = false;
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+            });
+            
+            // Фильтруем и сортируем карточки
+            userCards.forEach(card => {
+                const status = card.getAttribute('data-status');
+                const roles = card.getAttribute('data-roles').split(',');
+                const username = card.querySelector('.card-username').textContent.toLowerCase();
+                const name = card.querySelector('.card-user-name').textContent.toLowerCase();
+                const email = card.querySelector('.card-info-row span').textContent.toLowerCase();
+                
+                let showCard = true;
+                
+                // Фильтр по статусу
+                if (statusValue !== 'all' && status !== statusValue) {
+                    showCard = false;
+                }
+                
+                // Фильтр по роли
+                if (roleValue !== 'all') {
+                    if (roleValue === 'admin' && !roles.includes('Admin')) {
+                        showCard = false;
+                    } else if (roleValue === 'moder' && !roles.includes('Moder')) {
+                        showCard = false;
+                    } else if (roleValue === 'user' && (roles.includes('Admin') || roles.includes('Moder'))) {
+                        showCard = false;
+                    }
+                }
+                
+                // Поиск по тексту
+                if (searchText && !(username.includes(searchText) || name.includes(searchText) || email.includes(searchText))) {
+                    showCard = false;
+                }
+                
+                card.style.display = showCard ? '' : 'none';
+            });
+        }
+        
+        // Навешиваем обработчики на фильтры
+        statusFilter.addEventListener('change', filterUsers);
+        roleFilter.addEventListener('change', filterUsers);
+        sortFilter.addEventListener('change', filterUsers);
+        searchInput.addEventListener('input', filterUsers);
+        
+        // Функция для показа уведомлений
+        function showNotification(title, message, type = 'info') {
+            const notification = document.getElementById('notification');
+            const titleElement = notification.querySelector('.notification-title');
+            const messageElement = notification.querySelector('.notification-message');
+            const iconElement = notification.querySelector('.notification-icon i');
+            
+            titleElement.textContent = title;
+            messageElement.textContent = message;
+            
+            // Устанавливаем класс типа уведомления
+            notification.className = 'notification';
+            notification.classList.add(type);
+            
+            // Устанавливаем иконку в зависимости от типа
+            iconElement.className = '';
+            if (type === 'success') {
+                iconElement.className = 'fas fa-check-circle';
+            } else if (type === 'error') {
+                iconElement.className = 'fas fa-exclamation-circle';
+            } else if (type === 'warning') {
+                iconElement.className = 'fas fa-exclamation-triangle';
+            } else {
+                iconElement.className = 'fas fa-info-circle';
+            }
+            
+            // Показываем уведомление
+            notification.classList.add('show');
+            
+            // Скрываем через 5 секунд
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 5000);
+        }
+        
+        // Закрытие уведомления по клику на крестик
+        document.querySelector('.notification-close').addEventListener('click', () => {
+            document.getElementById('notification').classList.remove('show');
+        });
+        
+        // Обработчик для кнопок переключения статуса пользователя в таблице и карточках
+        document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const isActive = this.dataset.active === 'true';
+                
+                try {
+                    const response = await fetch(`/app/admin-panel/user/${userId}/toggle-status/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ action: 'toggle_active' })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        
+                        // Обновляем все элементы этого пользователя
+                        updateUserStatus(userId, data.is_active);
+                        
+                        showNotification(
+                            data.is_active ? 'Пользователь активирован' : 'Пользователь заблокирован',
+                            data.message,
+                            'success'
+                        );
+                    } else {
+                        const error = await response.json();
+                        showNotification('Ошибка', error.message || 'Не удалось изменить статус пользователя.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Ошибка', 'Произошла ошибка при изменении статуса пользователя.', 'error');
+                }
+            });
+        });
+        
+        // Обновляем статус пользователя во всех представлениях
+        function updateUserStatus(userId, isActive) {
+            // Обновляем в таблице
+            const userRow = document.querySelector(`.user-row[data-user-id="${userId}"]`);
+            if (userRow) {
+                const statusBadge = userRow.querySelector('.status-badge');
+                const statusBtn = userRow.querySelector('.toggle-status-btn');
+                
+                // Обновляем строку
+                userRow.setAttribute('data-status', isActive ? 'active' : 'inactive');
+                
+                // Обновляем бейдж статуса
+                statusBadge.className = 'status-badge ' + (isActive ? 'status-active' : 'status-inactive');
+                statusBadge.textContent = isActive ? 'Активен' : 'Неактивен';
+                
+                // Обновляем кнопку
+                statusBtn.className = `admin-btn admin-btn-${isActive ? 'danger' : 'success'} toggle-status-btn`;
+                statusBtn.innerHTML = `<i class="fas fa-${isActive ? 'user-slash' : 'user-check'}"></i>`;
+                statusBtn.title = isActive ? 'Деактивировать' : 'Активировать';
+                statusBtn.dataset.active = isActive.toString();
+            }
+            
+            // Обновляем в карточках
+            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+            if (userCard) {
+                const statusBadge = userCard.querySelector('.status-badge');
+                const statusBtn = userCard.querySelector('.toggle-status-btn');
+                
+                // Обновляем карточку
+                userCard.setAttribute('data-status', isActive ? 'active' : 'inactive');
+                
+                // Обновляем бейдж статуса
+                statusBadge.className = 'status-badge ' + (isActive ? 'status-active' : 'status-inactive');
+                statusBadge.textContent = isActive ? 'Активен' : 'Неактивен';
+                
+                // Обновляем кнопку
+                statusBtn.className = `admin-btn admin-btn-${isActive ? 'danger' : 'success'} toggle-status-btn`;
+                statusBtn.innerHTML = `<i class="fas fa-${isActive ? 'user-slash' : 'user-check'}"></i>`;
+                statusBtn.dataset.active = isActive.toString();
+            }
+        }
+        
+        // Функция обновления ролей пользователя
+        function updateUserRole(userId, roleType, hasRole) {
+            // Обновляем в таблице
+            const userRow = document.querySelector(`.user-row[data-user-id="${userId}"]`);
+            if (userRow) {
+                const rolesContainer = userRow.querySelector('.user-roles');
+                const roleBtn = userRow.querySelector(`.toggle-${roleType}-btn`);
+                const rolesData = userRow.getAttribute('data-roles').split(',');
+                
+                // Обновляем роли в атрибуте
+                if (hasRole) {
+                    if (!rolesData.includes(roleType === 'admin' ? 'Admin' : 'Moder')) {
+                        rolesData.push(roleType === 'admin' ? 'Admin' : 'Moder');
+                    }
+                } else {
+                    const index = rolesData.indexOf(roleType === 'admin' ? 'Admin' : 'Moder');
+                    if (index !== -1) {
+                        rolesData.splice(index, 1);
+                    }
+                }
+                userRow.setAttribute('data-roles', rolesData.join(','));
+                
+                // Обновляем отображение ролей
+                rolesContainer.innerHTML = '';
+                if (rolesData.length) {
+                    rolesData.forEach(role => {
+                        if (role) {
+                            const badge = document.createElement('span');
+                            badge.className = `role-badge ${role === 'Admin' ? 'role-admin' : role === 'Moder' ? 'role-moder' : 'role-user'}`;
+                            badge.textContent = role;
+                            rolesContainer.appendChild(badge);
+                        }
+                    });
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'role-badge role-user';
+                    badge.textContent = 'User';
+                    rolesContainer.appendChild(badge);
+                }
+                
+                // Обновляем кнопку
+                roleBtn.className = `admin-btn admin-btn-${hasRole ? 'danger' : (roleType === 'admin' ? 'success' : 'warning')} toggle-${roleType}-btn`;
+                roleBtn.title = hasRole ? `Снять ${roleType === 'admin' ? 'админа' : 'модера'}` : `Сделать ${roleType === 'admin' ? 'админом' : 'модером'}`;
+                roleBtn.dataset[roleType === 'admin' ? 'isAdmin' : 'isModer'] = hasRole.toString();
+            }
+            
+            // Обновляем в карточках
+            const userCard = document.querySelector(`.user-card[data-user-id="${userId}"]`);
+            if (userCard) {
+                // Аналогичные обновления для карточек...
+                const rolesContainer = userCard.querySelector('.card-roles');
+                const roleBtn = userCard.querySelector(`.toggle-${roleType}-btn`);
+                const rolesData = userCard.getAttribute('data-roles').split(',');
+                
+                // Обновляем роли в атрибуте
+                if (hasRole) {
+                    if (!rolesData.includes(roleType === 'admin' ? 'Admin' : 'Moder')) {
+                        rolesData.push(roleType === 'admin' ? 'Admin' : 'Moder');
+                    }
+                } else {
+                    const index = rolesData.indexOf(roleType === 'admin' ? 'Admin' : 'Moder');
+                    if (index !== -1) {
+                        rolesData.splice(index, 1);
+                    }
+                }
+                userCard.setAttribute('data-roles', rolesData.join(','));
+                
+                // Обновляем отображение ролей
+                rolesContainer.innerHTML = '';
+                if (rolesData.length) {
+                    rolesData.forEach(role => {
+                        if (role) {
+                            const badge = document.createElement('span');
+                            badge.className = `role-badge ${role === 'Admin' ? 'role-admin' : role === 'Moder' ? 'role-moder' : 'role-user'}`;
+                            badge.textContent = role;
+                            rolesContainer.appendChild(badge);
+                        }
+                    });
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'role-badge role-user';
+                    badge.textContent = 'User';
+                    rolesContainer.appendChild(badge);
+                }
+                
+                // Обновляем кнопку
+                roleBtn.className = `admin-btn admin-btn-${hasRole ? 'danger' : (roleType === 'admin' ? 'success' : 'warning')} toggle-${roleType}-btn`;
+                roleBtn.dataset[roleType === 'admin' ? 'isAdmin' : 'isModer'] = hasRole.toString();
+            }
+        }
+        
+        // Обработчики для кнопок переключения ролей
+        document.querySelectorAll('.toggle-admin-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const isAdmin = this.dataset.isAdmin === 'true';
+                
+                try {
+                    const response = await fetch(`/app/admin-panel/user/${userId}/toggle-status/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ action: 'toggle_admin' })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateUserRole(userId, 'admin', data.is_admin);
+                        showNotification('Успех', data.message, 'success');
+                    } else {
+                        const error = await response.json();
+                        showNotification('Ошибка', error.message || 'Не удалось изменить статус администратора', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Ошибка', 'Произошла ошибка при изменении статуса администратора', 'error');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.toggle-moder-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const isModer = this.dataset.isModer === 'true';
+                
+                try {
+                    const response = await fetch(`/app/admin-panel/user/${userId}/toggle-status/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ action: 'toggle_moder' })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        updateUserRole(userId, 'moder', data.is_moder);
+                        showNotification('Успех', data.message, 'success');
+                    } else {
+                        const error = await response.json();
+                        showNotification('Ошибка', error.message || 'Не удалось изменить статус модератора', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Ошибка', 'Произошла ошибка при изменении статуса модератора', 'error');
+                }
+            });
+        });
+        
+        // Обработчик для кнопки обновления
+        document.getElementById('refresh-btn').addEventListener('click', function() {
+            location.reload();
+        });
+        
+        // Функция для получения cookie
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        
+        // Обработчик для редактирования пользователя
+        document.querySelectorAll('.edit-user-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const userId = this.dataset.userId;
+                const modal = document.getElementById('edit-user-modal');
+                
+                try {
+                    const response = await fetch(`/app/api/admin/users/${userId}/`, {
+                        method: 'GET',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const userData = await response.json();
+                        fillEditForm(userData);
+                        modal.style.display = 'block';
+                    } else {
+                        const error = await response.json();
+                        showNotification('Ошибка', error.message || 'Не удалось загрузить данные пользователя', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification('Ошибка', 'Произошла ошибка при загрузке данных пользователя', 'error');
+                }
+            });
+        });
+        
+        // Заполнение формы редактирования
+        async function fillEditForm(userData) {
+            document.getElementById('edit-user-id').value = userData.id || userData.user_id;
+            document.getElementById('edit-username').value = userData.username;
+            document.getElementById('edit-email').value = userData.email;
+            document.getElementById('edit-first-name').value = userData.first_name || '';
+            document.getElementById('edit-last-name').value = userData.last_name || '';
+            document.getElementById('edit-phone').value = userData.phone || '';
+            document.getElementById('edit-gender').value = userData.gender || '';
+            document.getElementById('edit-kurs').value = userData.kurs || '';
+            document.getElementById('edit-bio').value = userData.bio || '';
+            document.getElementById('edit-is-active').checked = userData.is_active;
+            
+            // Сброс полей пароля
+            document.getElementById('edit-reset-password').checked = false;
+            document.getElementById('password-fields').classList.add('hidden');
+            
+            // Загрузка ролей
+            try {
+                const response = await fetch('/app/api/admin/roles/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                if (response.ok) {
+                    const roles = await response.json();
+                    const rolesContainer = document.getElementById('edit-roles');
+                    rolesContainer.innerHTML = '';
+                    
+                    roles.forEach(role => {
+                        const isChecked = userData.roles && userData.roles.some(userRole => 
+                            userRole.id === role.id || userRole.role_id === role.id || 
+                            (typeof userRole === 'string' && userRole === role.name)
+                        );
+                        
+                        const roleDiv = document.createElement('div');
+                        roleDiv.className = 'role-check';
+                        roleDiv.innerHTML = `
+                            <label class="role-checkbox-label">
+                                <input type="checkbox" class="role-checkbox" name="roles" value="${role.id}" ${isChecked ? 'checked' : ''}>
+                                <span class="role-label">${role.name}</span>
+                            </label>
+                        `;
+                        rolesContainer.appendChild(roleDiv);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading roles:', error);
+                showNotification('Ошибка', 'Не удалось загрузить список ролей', 'error');
+            }
+        }
+        
+        // Обработчик переключения сброса пароля
+        document.getElementById('edit-reset-password').addEventListener('change', function() {
+            const passwordFields = document.getElementById('password-fields');
+            passwordFields.classList.toggle('hidden', !this.checked);
+        });
+        
+        // Обработчик отправки формы редактирования
+        document.getElementById('edit-user-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('edit-user-id').value;
+            const roleCheckboxes = document.querySelectorAll('.role-checkbox:checked');
+            const roles = Array.from(roleCheckboxes).map(cb => cb.value);
+            
+            const userData = {
+                email: document.getElementById('edit-email').value,
+                first_name: document.getElementById('edit-first-name').value,
+                last_name: document.getElementById('edit-last-name').value,
+                phone: document.getElementById('edit-phone').value,
+                gender: document.getElementById('edit-gender').value,
+                kurs: document.getElementById('edit-kurs').value,
+                bio: document.getElementById('edit-bio').value,
+                is_active: document.getElementById('edit-is-active').checked,
+                roles: roles
+            };
+            
+            // Добавляем пароль, если нужно сбросить
+            if (document.getElementById('edit-reset-password').checked) {
+                userData.reset_password = true;
+                userData.new_password = document.getElementById('edit-new-password').value;
+            }
+            
+            try {
+                const response = await fetch(`/app/api/admin/users/${userId}/`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(userData)
+                });
+                
+                if (response.ok) {
+                    document.getElementById('edit-user-modal').style.display = 'none';
+                    showNotification('Успех', 'Данные пользователя успешно обновлены', 'success');
+                    
+                    // Обновляем данные на странице без перезагрузки
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    const error = await response.json();
+                    showNotification('Ошибка', error.message || 'Не удалось обновить данные пользователя', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Ошибка', 'Произошла ошибка при обновлении данных пользователя', 'error');
+            }
+        });
+        
+        // Закрытие модального окна
+        document.querySelectorAll('.close-modal').forEach(el => {
+            el.addEventListener('click', function() {
+                document.getElementById('edit-user-modal').style.display = 'none';
+            });
+        });
+        
+        // Закрытие модального окна при клике вне контента
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('edit-user-modal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %} 
