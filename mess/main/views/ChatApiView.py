@@ -6,6 +6,9 @@ from ..decorators import check_auth_tokens
 from django.utils.decorators import method_decorator
 import logging
 import re
+from django.db.models import Q, Max, F, Subquery, OuterRef
+from django.db.models.functions import Coalesce
+import traceback
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,11 @@ class ChatMessagesAPI(APIView):
                 room_name=room_name
             ).order_by('timestamp')
             
+            # Отмечаем сообщения как прочитанные
+            for msg in messages:
+                if msg.user.id != request.user.id:  # Не отмечаем свои сообщения
+                    msg.read_by.add(request.user)
+            
             # Сериализуем сообщения
             serialized_messages = []
             for msg in messages:
@@ -51,6 +59,8 @@ class ChatMessagesAPI(APIView):
                     'id': msg.id,
                     'message': msg.message,
                     'timestamp': msg.timestamp.isoformat(),
+                    'is_read': request.user in msg.read_by.all(),
+                    'edited': msg.edited,
                     'user': {
                         'id': msg.user.id,
                         'username': msg.user.username,
@@ -68,5 +78,349 @@ class ChatMessagesAPI(APIView):
             logger.error(f"Ошибка при получении истории сообщений: {str(e)}")
             return Response(
                 {"detail": "Произошла ошибка при получении истории сообщений"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ChatListAPI(APIView):
+    """
+    API для получения списка чатов с последними сообщениями
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def get(self, request):
+        """
+        Получение списка чатов пользователя с последними сообщениями
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Найдем все личные чаты пользователя (по шаблону direct_X_Y)
+            user_id = request.user.id
+            
+            # Шаблоны для личных чатов с участием пользователя
+            pattern1 = f'direct_{user_id}_\\d+'
+            pattern2 = f'direct_\\d+_{user_id}'
+            
+            # Получаем все уникальные комнаты, в которых участвовал пользователь
+            user_chat_rooms = ChatMessage.objects.filter(
+                Q(room_name__regex=pattern1) | Q(room_name__regex=pattern2)
+            ).values_list('room_name', flat=True).distinct()
+            
+            # Подготавливаем результат
+            direct_chats = []
+            processed_user_ids = set()  # Отслеживаем ID собеседников, чтобы избежать дубликатов
+            
+            for room_name in user_chat_rooms:
+                direct_chat_match = re.match(r'^direct_(\d+)_(\d+)$', room_name)
+                if direct_chat_match:
+                    user_id1 = int(direct_chat_match.group(1))
+                    user_id2 = int(direct_chat_match.group(2))
+                    
+                    # Определяем собеседника
+                    other_user_id = user_id1 if request.user.id == user_id2 else user_id2
+                    
+                    # Проверяем, не обрабатывали ли мы уже этого пользователя
+                    if other_user_id in processed_user_ids:
+                        continue
+                        
+                    # Добавляем ID в список обработанных
+                    processed_user_ids.add(other_user_id)
+                    
+                    try:
+                        other_user = User.objects.get(id=other_user_id)
+                        
+                        # Получаем последнее сообщение в чате
+                        last_message = ChatMessage.objects.filter(
+                            room_name=room_name
+                        ).order_by('-timestamp').first()
+                        
+                        # Проверяем, есть ли непрочитанные сообщения
+                        unread_count = ChatMessage.objects.filter(
+                            room_name=room_name
+                        ).exclude(
+                            user=request.user
+                        ).exclude(
+                            read_by=request.user
+                        ).count()
+                        
+                        # Добавляем данные о чате
+                        direct_chats.append({
+                            'id': room_name,
+                            'name': f"{other_user.first_name} {other_user.last_name}",
+                            'user': {
+                                'id': other_user.id,
+                                'username': other_user.username,
+                                'first_name': other_user.first_name,
+                                'last_name': other_user.last_name,
+                                'avatar': other_user.avatar.url if other_user.avatar else None
+                            },
+                            'last_message': last_message.message if last_message else '',
+                            'last_message_time': last_message.timestamp.isoformat() if last_message else None,
+                            'unread_count': unread_count
+                        })
+                    except User.DoesNotExist:
+                        logger.warning(f"Пользователь с ID {other_user_id} не найден")
+            
+            # Сортируем личные чаты по времени последнего сообщения (новые сверху)
+            direct_chats = sorted(
+                direct_chats, 
+                key=lambda x: x['last_message_time'] if x['last_message_time'] else '0', 
+                reverse=True
+            )
+            
+            return Response({
+                'direct_chats': direct_chats
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка чатов: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при получении списка чатов"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UnreadMessagesCountAPI(APIView):
+    """
+    API для получения количества непрочитанных сообщений
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def get(self, request):
+        """
+        Получение количества непрочитанных сообщений для текущего пользователя
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Найдем все личные чаты пользователя (по шаблону direct_X_Y)
+            user_id = request.user.id
+            
+            # Шаблоны для личных чатов с участием пользователя
+            pattern1 = f'direct_{user_id}_\\d+'
+            pattern2 = f'direct_\\d+_{user_id}'
+            
+            # Находим все сообщения в личных чатах с участием пользователя, 
+            # которые не были прочитаны пользователем и не были отправлены пользователем
+            unread_messages = ChatMessage.objects.filter(
+                Q(room_name__regex=pattern1) | Q(room_name__regex=pattern2)  # В личных чатах с участием пользователя
+            ).exclude(
+                user=request.user  # Исключаем сообщения от текущего пользователя
+            ).exclude(
+                read_by=request.user  # Исключаем сообщения, прочитанные текущим пользователем
+            )
+            
+            # Получаем количество непрочитанных сообщений
+            unread_count = unread_messages.count()
+            
+            # Получаем информацию о чатах с непрочитанными сообщениями
+            unread_chats = {}
+            for msg in unread_messages:
+                if msg.room_name not in unread_chats:
+                    unread_chats[msg.room_name] = 1
+                else:
+                    unread_chats[msg.room_name] += 1
+            
+            return Response({
+                'total_unread': unread_count,
+                'unread_chats': unread_chats
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении количества непрочитанных сообщений: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при получении количества непрочитанных сообщений"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class MarkMessagesAsReadAPI(APIView):
+    """
+    API для отметки сообщений как прочитанных
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def post(self, request, room_name):
+        """
+        Отметить все сообщения в комнате как прочитанные
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Если это личный чат, проверяем, является ли пользователь участником
+            direct_chat_match = re.match(r'^direct_(\d+)_(\d+)$', room_name)
+            if direct_chat_match:
+                user_id1 = int(direct_chat_match.group(1))
+                user_id2 = int(direct_chat_match.group(2))
+                
+                if request.user.id not in [user_id1, user_id2]:
+                    return Response(
+                        {"detail": "У вас нет доступа к этому чату"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            # Получаем все непрочитанные сообщения в комнате, которые не от текущего пользователя
+            messages = ChatMessage.objects.filter(
+                room_name=room_name
+            ).exclude(
+                user=request.user  # Исключаем сообщения от текущего пользователя
+            ).exclude(
+                read_by=request.user  # Исключаем сообщения, прочитанные текущим пользователем
+            )
+            
+            # Отмечаем сообщения как прочитанные
+            for msg in messages:
+                msg.read_by.add(request.user)
+            
+            return Response({
+                'status': 'success',
+                'marked_as_read': messages.count(),
+                'room_name': room_name
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при отметке сообщений как прочитанных: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при отметке сообщений как прочитанных"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class EditMessageAPI(APIView):
+    """
+    API для редактирования сообщений
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def post(self, request, message_id):
+        """
+        Редактирование сообщения по ID
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Получаем новый текст сообщения из запроса
+            new_message_text = request.data.get('message', '')
+            if not new_message_text.strip():
+                return Response(
+                    {"detail": "Текст сообщения не может быть пустым"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Находим сообщение по ID
+            try:
+                message = ChatMessage.objects.get(id=message_id)
+            except ChatMessage.DoesNotExist:
+                return Response(
+                    {"detail": "Сообщение не найдено"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Проверяем, является ли пользователь автором сообщения
+            if message.user.id != request.user.id:
+                return Response(
+                    {"detail": "Вы не можете редактировать чужие сообщения"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Обновляем текст сообщения
+            message.message = new_message_text
+            message.edited = True  # Отмечаем что сообщение было отредактировано
+            message.save()
+            
+            return Response({
+                'status': 'success',
+                'message': 'Сообщение успешно отредактировано',
+                'message_id': message_id
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при редактировании сообщения: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при редактировании сообщения"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class DeleteMessageAPI(APIView):
+    """
+    API для удаления сообщений
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def post(self, request, message_id):
+        """
+        Удаление сообщения по ID
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Находим сообщение по ID
+            try:
+                message = ChatMessage.objects.get(id=message_id)
+            except ChatMessage.DoesNotExist:
+                return Response(
+                    {"detail": "Сообщение не найдено", "status": "error"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Проверяем, является ли пользователь автором сообщения
+            if message.user.id != request.user.id:
+                return Response(
+                    {"detail": "Вы не можете удалять чужие сообщения", "status": "error"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Сохраняем ID комнаты перед удалением
+            room_name = message.room_name
+            
+            # Сохраняем информацию о сообщении для логирования
+            message_info = {
+                'id': message.id,
+                'text': message.message,
+                'user': message.user.username,
+                'room': message.room_name,
+                'timestamp': message.timestamp.isoformat()
+            }
+            
+            # Удаляем сообщение
+            message.delete()
+            
+            # Записываем лог успешного удаления
+            logger.info(f"Успешно удалено сообщение ID={message_id}, текст: '{message_info['text'][:30]}...' из комнаты {room_name}")
+            
+            return Response({
+                'status': 'success',
+                'message': 'Сообщение успешно удалено',
+                'message_id': message_id,
+                'room_name': room_name
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при удалении сообщения {message_id}: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"detail": "Произошла ошибка при удалении сообщения", "status": "error"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 

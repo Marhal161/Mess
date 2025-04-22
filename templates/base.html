@@ -19,6 +19,31 @@
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     {% csrf_token %}
     {% block extra_css %}{% endblock %}
+    
+    <style>
+        .message-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: var(--unread-badge);
+            color: white;
+            border-radius: 50%;
+            min-width: 18px;
+            min-height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            display: none; /* Скрыт по умолчанию */
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+    </style>
 </head>
 <body>
     <header class="main-header">
@@ -29,7 +54,10 @@
             <nav class="main-nav">
                 {% if user.is_authenticated %}
                     <a href="/app" class="nav-link"><i class="fas fa-home"></i> Главная</a>
-                    <a href="/app/chat/" class="nav-link"><i class="fas fa-comments"></i> Сообщения</a>
+                    <a href="/app/chat/" class="nav-link" id="messages-link">
+                        <i class="fas fa-comments"></i> Сообщения
+                        <span class="message-badge" id="unread-messages-badge">0</span>
+                    </a>
                     <a href="/app/profile/" class="nav-link"><i class="fas fa-user"></i> Профиль</a>
                     <a href="/app/logout/" class="nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Выйти</a>
                 {% else %}
@@ -54,6 +82,72 @@
     
     <!-- Общие скрипты -->
     <script src="{% static 'js/main.js' %}"></script>
+    
+    {% if user.is_authenticated %}
+    <script>
+        // Функция для получения количества непрочитанных сообщений
+        function updateUnreadMessagesCount() {
+            fetch('/app/api/chat/unread-count/')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('unread-messages-badge');
+                    if (data.total_unread > 0) {
+                        badge.textContent = data.total_unread > 99 ? '99+' : data.total_unread;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Ошибка при получении непрочитанных сообщений:', error));
+        }
+        
+        // Создание WebSocket для уведомлений
+        function setupNotificationsWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+            const notificationSocket = new WebSocket(wsUrl);
+            
+            notificationSocket.onmessage = function(e) {
+                const data = JSON.parse(e.data);
+                if (data.notification_type === 'new_message') {
+                    // Обновляем счетчик непрочитанных сообщений
+                    updateUnreadMessagesCount();
+                }
+            };
+            
+            notificationSocket.onclose = function(e) {
+                console.error('Notification socket closed unexpectedly');
+                // Пытаемся переподключиться через 5 секунд
+                setTimeout(setupNotificationsWebSocket, 5000);
+            };
+            
+            notificationSocket.onerror = function(e) {
+                console.error('Notification socket error:', e);
+            };
+            
+            // Сохраняем ссылку на сокет в window для доступа из других скриптов
+            window.notificationSocket = notificationSocket;
+        }
+        
+        // Обновляем количество непрочитанных сообщений при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            updateUnreadMessagesCount();
+            
+            // Инициализируем WebSocket для уведомлений
+            setupNotificationsWebSocket();
+            
+            // В дополнение к WebSocket, обновляем каждые 30 секунд на случай проблем с соединением
+            setInterval(updateUnreadMessagesCount, 30000);
+        });
+        
+        // Очищаем ресурсы при уходе со страницы
+        window.addEventListener('beforeunload', function() {
+            if (window.notificationSocket && window.notificationSocket.readyState === WebSocket.OPEN) {
+                window.notificationSocket.close();
+            }
+        });
+    </script>
+    {% endif %}
     
     {% block extra_scripts %}{% endblock %}
 </body>

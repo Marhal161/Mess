@@ -1,32 +1,53 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сообщения - Mess</title>
-    <link rel="stylesheet" href="/static/css/chat_rooms.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body>
-    <div class="container">
-        <div class="user-info">
-            Вы вошли как: 
-            <span>{{ user.username }}</span>
-            {% if user.avatar %}
-                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
-            {% else %}
-                <div class="user-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
-            {% endif %}
-            <a href="{% url 'home' %}"><i class="fas fa-home"></i> На главную</a>
-        </div>
-        
-        <h1>Сообщения</h1>
-        
-        <!-- Личные чаты -->
-        <h2>Личные сообщения</h2>
-        
+{% extends 'base.html' %}
+
+{% block title %}Сообщения - Mess{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/chat_rooms.css">
+<style>
+    .unread-badge {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        background-color: var(--unread-badge);
+        color: white;
+        border-radius: 50%;
+        min-width: 22px;
+        min-height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .direct-chat-card {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="user-info">
+        Вы вошли как: 
+        <span>{{ user.username }}</span>
+        {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+        {% else %}
+            <div class="user-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+        {% endif %}
+        <a href="{% url 'home' %}"><i class="fas fa-home"></i> На главную</a>
+    </div>
+    
+    <h1>Сообщения</h1>
+    
+    <!-- Личные чаты -->
+    <h2>Личные сообщения</h2>
+    
+    <div id="direct-chats-container">
         {% if direct_chats %}
-        <div class="direct-chat-list">
+        <div class="direct-chat-list" id="direct-chat-list">
             {% for chat in direct_chats %}
             <a href="{% url 'chat_room' room_name=chat.id %}" class="direct-chat-card">
                 <div class="direct-chat-avatar">
@@ -53,47 +74,200 @@
                         {% endif %}
                     </div>
                 </div>
+                {% if chat.unread_count > 0 %}
+                <div class="unread-badge">{{ chat.unread_count }}</div>
+                {% endif %}
             </a>
             {% endfor %}
         </div>
         {% else %}
-        <div class="no-chats">
+        <div class="no-chats" id="no-chats">
             <i class="fas fa-comments" style="font-size: 36px; margin-bottom: 15px; color: #4A76A8;"></i>
             <p>У вас пока нет личных сообщений.</p>
             <p>Начните общение с кем-нибудь на <a href="/app">главной странице</a>.</p>
         </div>
         {% endif %}
-        
-        <!-- Общие комнаты -->
-        <h2>Общие чаты</h2>
-        
-        <div class="rooms-list">
-            {% for room in public_rooms %}
-            <div class="room-card">
-                <div class="room-header">{{ room.name }}</div>
-                <div class="room-body">
-                    <p class="room-description">
-                        {% if room.id == 'general' %}
-                        Общий чат для всех пользователей. Обсуждайте любые темы и знакомьтесь с новыми людьми.
-                        {% elif room.id == 'support' %}
-                        Получите помощь от нашей команды поддержки. Задайте вопрос и мы постараемся ответить как можно скорее.
-                        {% elif room.id == 'random' %}
-                        Место для обсуждения случайных тем, мемов и всего, что не вписывается в другие категории.
-                        {% else %}
-                        Присоединяйтесь к этой комнате для общения с другими пользователями.
-                        {% endif %}
-                    </p>
-                    <a href="{% url 'chat_room' room_name=room.id %}" class="join-button">
-                        <i class="fas fa-sign-in-alt"></i> Присоединиться
-                    </a>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        
-        <a href="{% url 'home' %}" class="back-link">
-            <i class="fas fa-arrow-left"></i> Вернуться на главную
-        </a>
     </div>
-</body>
-</html> 
+    
+    <a href="{% url 'home' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Вернуться на главную
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Функция для форматирования времени
+    function formatTime(isoTime) {
+        if (!isoTime) return '';
+        const date = new Date(isoTime);
+        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Создаем WebSocket соединение для обновления списка чатов
+    let chatListSocket = null;
+    let isConnected = false;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let reconnectTimeout;
+    
+    function setupChatListWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/notifications/`;
+        chatListSocket = new WebSocket(wsUrl);
+        
+        chatListSocket.onopen = function() {
+            console.log('ChatList WebSocket connection established');
+            isConnected = true;
+            reconnectAttempts = 0;
+        };
+        
+        chatListSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.notification_type === 'new_message') {
+                // Обновляем список чатов при получении нового сообщения
+                updateChatList();
+            }
+        };
+        
+        chatListSocket.onclose = function(e) {
+            console.error('ChatList WebSocket closed unexpectedly');
+            isConnected = false;
+            
+            // Пытаемся переподключиться, если страница активна
+            if (!document.hidden && reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                console.log(`Попытка переподключения (${reconnectAttempts}/${maxReconnectAttempts})...`);
+                
+                reconnectTimeout = setTimeout(() => {
+                    setupChatListWebSocket();
+                }, 3000);
+            }
+        };
+        
+        chatListSocket.onerror = function(e) {
+            console.error('ChatList WebSocket error:', e);
+        };
+    }
+    
+    // Функция для получения списка чатов
+    function updateChatList() {
+        fetch('/app/api/chat/list/')
+            .then(response => response.json())
+            .then(data => {
+                const directChats = data.direct_chats;
+                
+                // Если чаты есть, обновляем список
+                if (directChats && directChats.length > 0) {
+                    // Скрываем сообщение "нет чатов", если оно видимо
+                    const noChatsElement = document.getElementById('no-chats');
+                    if (noChatsElement) {
+                        noChatsElement.style.display = 'none';
+                    }
+                    
+                    // Создаем/обновляем список чатов
+                    const chatListElement = document.getElementById('direct-chat-list');
+                    if (!chatListElement) {
+                        // Если элемента нет, создаем новый
+                        const container = document.getElementById('direct-chats-container');
+                        const newChatList = document.createElement('div');
+                        newChatList.className = 'direct-chat-list';
+                        newChatList.id = 'direct-chat-list';
+                        container.innerHTML = '';
+                        container.appendChild(newChatList);
+                        
+                        // Добавляем чаты
+                        renderChats(newChatList, directChats);
+                    } else {
+                        // Обновляем существующий список
+                        renderChats(chatListElement, directChats);
+                    }
+                } else {
+                    // Если чатов нет, показываем сообщение
+                    const container = document.getElementById('direct-chats-container');
+                    container.innerHTML = `
+                        <div class="no-chats" id="no-chats">
+                            <i class="fas fa-comments" style="font-size: 36px; margin-bottom: 15px; color: #4A76A8;"></i>
+                            <p>У вас пока нет личных сообщений.</p>
+                            <p>Начните общение с кем-нибудь на <a href="/app">главной странице</a>.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => console.error('Ошибка при получении списка чатов:', error));
+    }
+    
+    // Функция для рендеринга списка чатов
+    function renderChats(container, chats) {
+        // Очищаем контейнер
+        container.innerHTML = '';
+        
+        // Добавляем каждый чат
+        chats.forEach(chat => {
+            const chatCard = document.createElement('a');
+            chatCard.href = `/app/chat/${chat.id}/`;
+            chatCard.className = 'direct-chat-card';
+            
+            // Аватар
+            const avatarHTML = chat.user.avatar 
+                ? `<img src="${chat.user.avatar}" alt="${chat.name}" width="50" height="50" style="border-radius: 50%">` 
+                : `${chat.name.substring(0, 2).toUpperCase()}`;
+            
+            // Непрочитанные сообщения
+            const unreadBadge = chat.unread_count > 0 
+                ? `<div class="unread-badge">${chat.unread_count}</div>` 
+                : '';
+            
+            chatCard.innerHTML = `
+                <div class="direct-chat-avatar">
+                    ${avatarHTML}
+                </div>
+                <div class="direct-chat-info">
+                    <div class="direct-chat-name">
+                        ${chat.name}
+                        <div class="direct-chat-time">
+                            ${chat.last_message_time ? formatTime(chat.last_message_time) : ''}
+                        </div>
+                    </div>
+                    <div class="direct-chat-message">
+                        ${chat.last_message ? chat.last_message.substring(0, 40) + (chat.last_message.length > 40 ? '...' : '') : 'Нет сообщений'}
+                    </div>
+                </div>
+                ${unreadBadge}
+            `;
+            
+            container.appendChild(chatCard);
+        });
+    }
+    
+    // Обновляем список чатов при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        // Инициализируем WebSocket для уведомлений о новых сообщениях
+        setupChatListWebSocket();
+        
+        // Обновляем список чатов периодически как резервный вариант
+        const intervalId = setInterval(() => {
+            if (!document.hidden) {
+                updateChatList();
+            }
+        }, 5000);
+        
+        // Обновляем при фокусе на странице
+        window.addEventListener('focus', updateChatList);
+        
+        // Очищаем ресурсы при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            clearInterval(intervalId);
+            if (chatListSocket && chatListSocket.readyState === WebSocket.OPEN) {
+                chatListSocket.close();
+            }
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+        });
+        
+        // Первое обновление при загрузке страницы
+        updateChatList();
+    });
+</script>
+{% endblock %} 

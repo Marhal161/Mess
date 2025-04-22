@@ -64,7 +64,9 @@ class ChatMessage(models.Model):
     room_name = models.CharField(max_length=100)
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
-
+    read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
+    edited = models.BooleanField(default=False)  # Флаг, был ли сообщение отредактировано
+    
     class Meta:
         ordering = ['timestamp']
         

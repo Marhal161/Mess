@@ -1,26 +1,5 @@
 @import 'variables.css';
 
-/* Переменные для главной страницы */
-:root {
-    --feed-bg: #f3f4f6;
-    --card-bg: #ffffff;
-    --header-color: #111827;
-    --text-color: #374151;
-    --text-light: #6b7280;
-    --like-color: #4f46e5;  /* Основной цвет для кнопки лайк */
-    --like-color-hover: #4338ca;
-    --liked-color: #10b981;  /* Зеленый для лайкнутых профилей */
-    --liked-color-hover: #059669;
-    --dislike-color: #f3f4f6;
-    --dislike-text: #4b5563;
-    --dislike-hover: #e5e7eb;
-    --border-radius: 1rem;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --transition: all 0.3s ease;
-}
-
 /* Контейнер для ленты пользователей */
 .user-feed-container {
     max-width: 800px;
@@ -185,22 +164,22 @@
 }
 
 .btn-like {
-    background-color: #4A90E2; /* Голубой цвет для не поставленного лайка */
+    background-color: var(--primary-color);
     color: white;
 }
 
 .btn-like:hover {
-    background-color: #357ABD; /* Темно-голубой при наведении */
+    background-color: var(--primary-dark);
     transform: translateY(-5px) scale(1.05);
 }
 
 .btn-liked {
-    background-color: #FF4757; /* Красный цвет для поставленного лайка */
+    background-color: var(--accent-color);
     color: white;
 }
 
 .btn-liked:hover {
-    background-color: #E03547; /* Темно-красный при наведении */
+    background-color: #E03547;
     transform: translateY(-5px) scale(1.05);
 }
 

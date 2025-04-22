@@ -1,30 +1,15 @@
-/* Переменные страницы чатов */
-:root {
-    --room-primary: #4A76A8;
-    --room-primary-light: #5b8bc1;
-    --room-primary-dark: #3d6293;
-    --room-bg: #F0F2F5;
-    --room-text: #333333;
-    --room-text-light: #666666;
-    --room-card-bg: #FFFFFF;
-    --room-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    --room-hover-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    --room-transition: all 0.3s ease;
-    --room-header-bg: #4A76A8;
-    --room-unread-badge: #F44336;
-    --room-online-dot: #42B72A;
-}
+@import 'variables.css';
 
 /* Общие стили */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--room-bg);
+    font-family: var(--font-family);
+    background-color: var(--background-secondary);
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
-    color: var(--room-text);
+    color: var(--text-primary);
 }
 
 .container {
@@ -34,7 +19,7 @@ body {
 }
 
 h1 {
-    color: var(--room-primary);
+    color: var(--primary-color);
     text-align: center;
     margin-bottom: 30px;
     font-size: 32px;
@@ -50,12 +35,12 @@ h1::after {
     transform: translateX(-50%);
     width: 80px;
     height: 3px;
-    background-color: var(--room-primary-light);
+    background-color: var(--primary-light);
     border-radius: 2px;
 }
 
 h2 {
-    color: var(--room-primary);
+    color: var(--primary-color);
     margin: 40px 0 20px;
     font-size: 22px;
     position: relative;
@@ -77,7 +62,7 @@ h2::before, h2::after {
     justify-content: flex-end;
     align-items: center;
     margin-bottom: 30px;
-    color: var(--room-text-light);
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -85,7 +70,7 @@ h2::before, h2::after {
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background-color: var(--room-primary-light);
+    background-color: var(--primary-light);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -96,12 +81,12 @@ h2::before, h2::after {
 }
 
 .user-info a {
-    color: var(--room-primary);
+    color: var(--primary-color);
     text-decoration: none;
     margin-left: 10px;
     padding: 5px 10px;
     border-radius: 4px;
-    transition: var(--room-transition);
+    transition: var(--transition-normal);
 }
 
 .user-info a:hover {
@@ -117,11 +102,11 @@ h2::before, h2::after {
 }
 
 .room-card {
-    background-color: var(--room-card-bg);
+    background-color: var(--background-primary);
     border-radius: 12px;
-    box-shadow: var(--room-shadow);
+    box-shadow: var(--shadow-md);
     overflow: hidden;
-    transition: var(--room-transition);
+    transition: var(--transition-normal);
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -129,11 +114,11 @@ h2::before, h2::after {
 
 .room-card:hover {
     transform: translateY(-5px);
-    box-shadow: var(--room-hover-shadow);
+    box-shadow: var(--shadow-lg);
 }
 
 .room-header {
-    background-color: var(--room-header-bg);
+    background-color: var(--primary-color);
     color: white;
     padding: 15px 20px;
     font-weight: 600;
@@ -148,7 +133,7 @@ h2::before, h2::after {
 }
 
 .room-description {
-    color: var(--room-text-light);
+    color: var(--text-secondary);
     margin-bottom: 25px;
     flex-grow: 1;
     line-height: 1.5;
@@ -156,19 +141,19 @@ h2::before, h2::after {
 
 .join-button {
     display: inline-block;
-    background-color: var(--room-primary);
+    background-color: var(--primary-color);
     color: white;
     text-decoration: none;
     padding: 12px 20px;
     border-radius: 8px;
     text-align: center;
-    transition: var(--room-transition);
+    transition: var(--transition-normal);
     margin-top: auto;
     font-weight: 500;
 }
 
 .join-button:hover {
-    background-color: var(--room-primary-dark);
+    background-color: var(--primary-dark);
     transform: translateY(-2px);
 }
 
@@ -180,13 +165,13 @@ h2::before, h2::after {
 }
 
 .direct-chat-card {
-    background-color: var(--room-card-bg);
+    background-color: var(--background-primary);
     border-radius: 12px;
-    box-shadow: var(--room-shadow);
+    box-shadow: var(--shadow-md);
     padding: 15px;
     display: flex;
     align-items: center;
-    transition: var(--room-transition);
+    transition: var(--transition-normal);
     text-decoration: none;
     color: inherit;
     position: relative;
@@ -194,7 +179,7 @@ h2::before, h2::after {
 
 .direct-chat-card:hover {
     transform: translateX(5px);
-    box-shadow: var(--room-hover-shadow);
+    box-shadow: var(--shadow-lg);
 }
 
 .direct-chat-card.unread::before {
@@ -205,7 +190,7 @@ h2::before, h2::after {
     transform: translateY(-50%);
     width: 12px;
     height: 12px;
-    background-color: var(--room-unread-badge);
+    background-color: var(--unread-badge);
     border-radius: 50%;
 }
 
@@ -218,7 +203,7 @@ h2::before, h2::after {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    color: var(--room-text);
+    color: var(--text-primary);
     margin-right: 15px;
     font-size: 20px;
     position: relative;
@@ -230,7 +215,7 @@ h2::before, h2::after {
     right: 0;
     width: 14px;
     height: 14px;
-    background-color: var(--room-online-dot);
+    background-color: var(--online-dot);
     border: 2px solid white;
     border-radius: 50%;
 }
@@ -243,14 +228,14 @@ h2::before, h2::after {
 .direct-chat-name {
     font-weight: 600;
     margin-bottom: 5px;
-    color: var(--room-text);
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     justify-content: space-between;
 }
 
 .direct-chat-message {
-    color: var(--room-text-light);
+    color: var(--text-secondary);
     font-size: 14px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -260,7 +245,7 @@ h2::before, h2::after {
 }
 
 .direct-chat-time {
-    color: var(--room-text-light);
+    color: var(--text-secondary);
     font-size: 12px;
     white-space: nowrap;
 }
