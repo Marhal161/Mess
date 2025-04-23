@@ -6,6 +6,29 @@
 <div class="user-feed-container">
     <h1 class="feed-title">Знакомьтесь с другими студентами</h1>
     
+    <!-- Фильтр по интересам -->
+    <div class="interests-filter">
+        <h3 class="filter-title">Фильтр по интересам</h3>
+        <div class="interests-filter-container">
+            <div class="selected-interests" id="selected-interests">
+                <!-- Выбранные интересы будут здесь -->
+            </div>
+            <div class="filter-input-container">
+                <input type="text" id="interest-filter-input" class="interest-filter-input" placeholder="Введите интерес...">
+                <button id="interest-dropdown-toggle" class="interest-dropdown-toggle">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="interests-dropdown hidden" id="interests-dropdown">
+                <!-- Список всех интересов будет здесь -->
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button id="apply-filter" class="filter-btn filter-apply">Применить</button>
+            <button id="reset-filter" class="filter-btn filter-reset">Сбросить</button>
+        </div>
+    </div>
+    
     {% if users %}
         <div class="user-carousel">
             <div class="profile-card" id="current-profile" data-is-liked="{{ users.0.is_liked|yesno:'true,false' }}">
@@ -148,6 +171,230 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentProfile = document.getElementById('current-profile');
     const noMoreProfiles = document.getElementById('no-more-profiles');
     let profilesArray = Array.from(document.querySelectorAll('.next-profiles-container .profile-card'));
+    
+    // Код для фильтров по интересам
+    const interestFilterInput = document.getElementById('interest-filter-input');
+    const interestsDropdown = document.getElementById('interests-dropdown');
+    const dropdownToggle = document.getElementById('interest-dropdown-toggle');
+    const selectedInterestsContainer = document.getElementById('selected-interests');
+    const applyFilterBtn = document.getElementById('apply-filter');
+    const resetFilterBtn = document.getElementById('reset-filter');
+    let selectedInterests = [];
+    let allInterests = [];
+    
+    // Функция для загрузки всех интересов
+    async function loadInterests() {
+        try {
+            const response = await fetch('/app/api/interests/');
+            if (!response.ok) {
+                throw new Error('Не удалось загрузить интересы');
+            }
+            
+            allInterests = await response.json();
+            renderInterestsDropdown(allInterests);
+        } catch (error) {
+            console.error('Ошибка при загрузке интересов:', error);
+            showNotification('Не удалось загрузить список интересов', 'error');
+        }
+    }
+    
+    // Отрисовка выпадающего списка интересов
+    function renderInterestsDropdown(interests) {
+        interestsDropdown.innerHTML = '';
+        
+        if (interests.length === 0) {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'interest-item empty';
+            emptyItem.textContent = 'Интересы не найдены';
+            interestsDropdown.appendChild(emptyItem);
+            return;
+        }
+        
+        interests.forEach(interest => {
+            const interestItem = document.createElement('div');
+            interestItem.className = 'interest-item';
+            interestItem.dataset.id = interest.id;
+            interestItem.textContent = interest.name;
+            
+            // Отмечаем, если интерес уже выбран
+            if (selectedInterests.some(si => si.id === interest.id)) {
+                interestItem.classList.add('selected');
+            }
+            
+            interestItem.addEventListener('click', function() {
+                toggleInterest(interest);
+                this.classList.toggle('selected');
+            });
+            
+            interestsDropdown.appendChild(interestItem);
+        });
+    }
+    
+    // Функция добавления/удаления интереса из выбранных
+    function toggleInterest(interest) {
+        const index = selectedInterests.findIndex(si => si.id === interest.id);
+        
+        if (index === -1) {
+            // Добавляем интерес
+            selectedInterests.push(interest);
+        } else {
+            // Удаляем интерес
+            selectedInterests.splice(index, 1);
+        }
+        
+        // Обновляем UI
+        renderSelectedInterests();
+    }
+    
+    // Отрисовка выбранных интересов
+    function renderSelectedInterests() {
+        selectedInterestsContainer.innerHTML = '';
+        
+        if (selectedInterests.length === 0) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'no-interests';
+            placeholder.textContent = 'Выберите интересы для фильтрации';
+            selectedInterestsContainer.appendChild(placeholder);
+            return;
+        }
+        
+        selectedInterests.forEach(interest => {
+            const tag = document.createElement('div');
+            tag.className = 'selected-interest-tag';
+            
+            const text = document.createElement('span');
+            text.textContent = interest.name;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-interest';
+            removeBtn.innerHTML = '&times;';
+            removeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleInterest(interest);
+                
+                // Обновляем также выделение в выпадающем списке
+                const interestItem = interestsDropdown.querySelector(`.interest-item[data-id="${interest.id}"]`);
+                if (interestItem) {
+                    interestItem.classList.remove('selected');
+                }
+            });
+            
+            tag.appendChild(text);
+            tag.appendChild(removeBtn);
+            selectedInterestsContainer.appendChild(tag);
+        });
+    }
+    
+    // Фильтрация списка интересов в выпадающем меню
+    function filterInterestsList(searchText) {
+        const filteredInterests = allInterests.filter(interest => 
+            interest.name.toLowerCase().includes(searchText.toLowerCase())
+        );
+        renderInterestsDropdown(filteredInterests);
+    }
+    
+    // Применение фильтра
+    async function applyFilter() {
+        const interestIds = selectedInterests.map(i => i.id);
+        if (interestIds.length === 0) {
+            // Если ничего не выбрано, загружаем всех пользователей
+            window.location.href = '/app';
+            return;
+        }
+        
+        // Создаем URL с параметрами фильтра
+        const url = new URL(window.location.href);
+        url.searchParams.delete('interests');
+        interestIds.forEach(id => {
+            url.searchParams.append('interests', id);
+        });
+        
+        window.location.href = url.toString();
+    }
+    
+    // Сброс фильтра
+    function resetFilter() {
+        selectedInterests = [];
+        renderSelectedInterests();
+        
+        // Сбрасываем выделение в выпадающем списке
+        const selectedItems = interestsDropdown.querySelectorAll('.interest-item.selected');
+        selectedItems.forEach(item => item.classList.remove('selected'));
+        
+        // Очищаем поле ввода
+        interestFilterInput.value = '';
+        
+        // Если были применены фильтры, перезагружаем страницу
+        if (window.location.search.includes('interests')) {
+            window.location.href = '/app';
+        }
+    }
+    
+    // Проверяем, есть ли в URL параметры фильтра
+    function loadFilterFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const interestIds = params.getAll('interests').map(id => parseInt(id));
+        
+        if (interestIds.length > 0) {
+            // Загрузка и выбор интересов по ID
+            fetch('/app/api/interests/')
+                .then(response => response.json())
+                .then(interests => {
+                    allInterests = interests;
+                    
+                    // Выбираем интересы по ID из URL
+                    selectedInterests = interests.filter(interest => 
+                        interestIds.includes(interest.id)
+                    );
+                    
+                    renderSelectedInterests();
+                    renderInterestsDropdown(allInterests);
+                })
+                .catch(error => {
+                    console.error('Ошибка при загрузке интересов:', error);
+                });
+        } else {
+            // Загружаем все интересы
+            loadInterests();
+            renderSelectedInterests();
+        }
+    }
+    
+    // Инициализация компонентов фильтра
+    function initFilterComponents() {
+        // Загружаем интересы и проверяем URL
+        loadFilterFromUrl();
+        
+        // Обработчик для открытия/закрытия выпадающего списка
+        dropdownToggle.addEventListener('click', function() {
+            interestsDropdown.classList.toggle('hidden');
+        });
+        
+        // Открытие дропдауна при фокусе на поле ввода
+        interestFilterInput.addEventListener('focus', function() {
+            interestsDropdown.classList.remove('hidden');
+        });
+        
+        // Фильтрация списка при вводе
+        interestFilterInput.addEventListener('input', function() {
+            filterInterestsList(this.value);
+        });
+        
+        // Закрытие дропдауна при клике вне элемента
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.interests-filter-container') && 
+                !interestsDropdown.classList.contains('hidden')) {
+                interestsDropdown.classList.add('hidden');
+            }
+        });
+        
+        // Кнопки применения и сброса фильтра
+        applyFilterBtn.addEventListener('click', applyFilter);
+        resetFilterBtn.addEventListener('click', resetFilter);
+    }
+    
+    // Инициализируем фильтр
+    initFilterComponents();
     
     // Функция для обработки лайка
     async function handleLike(userId, btn) {

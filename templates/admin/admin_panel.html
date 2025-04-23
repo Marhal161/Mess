@@ -204,6 +204,91 @@
     .status-inactive {
         background-color: #dc3545;
     }
+    
+    /* Tabs styling */
+    .admin-tabs {
+        display: flex;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .admin-tab {
+        padding: 0.75rem 1.5rem;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        font-weight: 500;
+        color: #6c757d;
+        transition: all 0.2s;
+    }
+    
+    .admin-tab.active {
+        color: #4361ee;
+        border-bottom-color: #4361ee;
+    }
+    
+    .admin-tab-content {
+        display: none;
+    }
+    
+    .admin-tab-content.active {
+        display: block;
+    }
+    
+    /* Interest management styles */
+    .interest-form {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+    
+    .interest-form-title {
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    
+    .interest-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .interest-table th,
+    .interest-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .interest-table th {
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+        background-color: #f8f9fa;
+    }
+    
+    .interest-icon {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 6px;
+    }
+    
+    .icon-placeholder {
+        width: 40px;
+        height: 40px;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: #6c757d;
+    }
+    
+    .interest-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
 </style>
 {% endblock %}
 
@@ -253,192 +338,266 @@
         </div>
     </div>
     
-    <div class="admin-content">
-        <div class="admin-users-section">
+    <!-- Табы для разделов админки -->
+    <div class="admin-tabs">
+        <div class="admin-tab active" data-tab="users">
+            <i class="fas fa-users"></i> Пользователи
+        </div>
+        <div class="admin-tab" data-tab="interests">
+            <i class="fas fa-tags"></i> Интересы
+        </div>
+    </div>
+    
+    <!-- Контент таба пользователей -->
+    <div class="admin-tab-content active" id="users-tab">
+        <div class="admin-content">
+            <div class="admin-users-section">
+                <div class="admin-section-header">
+                    <div>
+                        <h2>Управление пользователями</h2>
+                        <p class="section-description">Просмотр и редактирование пользователей системы</p>
+                    </div>
+                    <div class="admin-search">
+                        <div class="search-container">
+                            <input type="text" id="user-search" placeholder="Поиск пользователей..." class="admin-search-input">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Фильтры пользователей -->
+                <div class="user-filters">
+                    <div class="filter-group">
+                        <label class="filter-label">Статус</label>
+                        <select id="status-filter" class="filter-select">
+                            <option value="all">Все</option>
+                            <option value="active">Активные</option>
+                            <option value="inactive">Неактивные</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Роль</label>
+                        <select id="role-filter" class="filter-select">
+                            <option value="all">Все</option>
+                            <option value="admin">Администраторы</option>
+                            <option value="moder">Модераторы</option>
+                            <option value="user">Обычные пользователи</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Сортировка</label>
+                        <select id="sort-filter" class="filter-select">
+                            <option value="name">По имени</option>
+                            <option value="date">По дате регистрации</option>
+                            <option value="email">По email</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Переключатель вида отображения -->
+                <div class="admin-view-toggle">
+                    <button class="view-btn active" data-view="table">
+                        <i class="fas fa-list"></i> Таблица
+                    </button>
+                    <button class="view-btn" data-view="cards">
+                        <i class="fas fa-th-large"></i> Карточки
+                    </button>
+                </div>
+                
+                <!-- Таблица пользователей -->
+                <div class="admin-table-view" id="table-view">
+                    <div class="admin-table-wrapper">
+                        <table id="users-table" class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Пользователь</th>
+                                    <th>Email</th>
+                                    <th>Роли</th>
+                                    <th>Статус</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                    <tr class="user-row" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
+                                        <td>
+                                            <div class="user-info">
+                                                {% if user.avatar %}
+                                                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+                                                {% else %}
+                                                    <div class="user-avatar-placeholder">{{ user.username.0|upper }}</div>
+                                                {% endif %}
+                                                <div class="user-name-container">
+                                                    <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
+                                                    <div class="username">@{{ user.username }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="user-email">{{ user.email }}</td>
+                                        <td class="user-roles">
+                                            {% if user.roles %}
+                                                {% for role in user.roles %}
+                                                <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="role-badge role-user">User</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="user-status">
+                                            <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                                {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="user-actions">
+                                            <div class="action-buttons">
+                                                <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}" title="{% if user.is_active %}Деактивировать{% else %}Активировать{% endif %}">
+                                                    <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                                </button>
+                                                <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}" title="{% if user.is_admin %}Снять админа{% else %}Сделать админом{% endif %}">
+                                                    <i class="fas fa-user-shield"></i>
+                                                </button>
+                                                <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}" title="{% if user.is_moder %}Снять модера{% else %}Сделать модером{% endif %}">
+                                                    <i class="fas fa-user-cog"></i>
+                                                </button>
+                                                <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}" title="Редактировать">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Вид карточками -->
+                <div class="admin-cards-view hidden" id="cards-view">
+                    <div class="user-cards-grid">
+                        {% for user in users %}
+                            <div class="user-card" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
+                                <div class="user-card-header">
+                                    {% if user.avatar %}
+                                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="card-avatar">
+                                    {% else %}
+                                        <div class="card-avatar-placeholder">{{ user.username.0|upper }}{{ user.username.1|default:""|upper }}</div>
+                                    {% endif %}
+                                    <div class="card-user-info">
+                                        <h3 class="card-user-name">{{ user.first_name }} {{ user.last_name }}</h3>
+                                        <p class="card-username">@{{ user.username }}</p>
+                                    </div>
+                                </div>
+                                <div class="user-card-body">
+                                    <div class="card-info-row">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>{{ user.email }}</span>
+                                    </div>
+                                    {% if user.phone %}
+                                    <div class="card-info-row">
+                                        <i class="fas fa-phone"></i>
+                                        <span>{{ user.phone }}</span>
+                                    </div>
+                                    {% endif %}
+                                    <div class="card-info-row">
+                                        <i class="fas fa-user-tag"></i>
+                                        <div class="card-roles">
+                                            {% if user.roles %}
+                                                {% for role in user.roles %}
+                                                <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
+                                                {% endfor %}
+                                            {% else %}
+                                                <span class="role-badge role-user">User</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="card-info-row">
+                                        <i class="fas fa-circle"></i>
+                                        <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
+                                            {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="user-card-footer">
+                                    <div class="card-actions">
+                                        <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}">
+                                            <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
+                                        </button>
+                                        <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}">
+                                            <i class="fas fa-user-shield"></i>
+                                        </button>
+                                        <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}">
+                                            <i class="fas fa-user-cog"></i>
+                                        </button>
+                                        <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Контент таба интересов -->
+    <div class="admin-tab-content" id="interests-tab">
+        <div class="admin-content">
             <div class="admin-section-header">
                 <div>
-                    <h2>Управление пользователями</h2>
-                    <p class="section-description">Просмотр и редактирование пользователей системы</p>
+                    <h2>Управление интересами</h2>
+                    <p class="section-description">Добавление и редактирование интересов пользователей</p>
                 </div>
                 <div class="admin-search">
                     <div class="search-container">
-                        <input type="text" id="user-search" placeholder="Поиск пользователей..." class="admin-search-input">
+                        <input type="text" id="interest-search" placeholder="Поиск интересов..." class="admin-search-input">
                         <i class="fas fa-search"></i>
                     </div>
                 </div>
             </div>
             
-            <!-- Фильтры пользователей -->
-            <div class="user-filters">
-                <div class="filter-group">
-                    <label class="filter-label">Статус</label>
-                    <select id="status-filter" class="filter-select">
-                        <option value="all">Все</option>
-                        <option value="active">Активные</option>
-                        <option value="inactive">Неактивные</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Роль</label>
-                    <select id="role-filter" class="filter-select">
-                        <option value="all">Все</option>
-                        <option value="admin">Администраторы</option>
-                        <option value="moder">Модераторы</option>
-                        <option value="user">Обычные пользователи</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Сортировка</label>
-                    <select id="sort-filter" class="filter-select">
-                        <option value="name">По имени</option>
-                        <option value="date">По дате регистрации</option>
-                        <option value="email">По email</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Переключатель вида отображения -->
-            <div class="admin-view-toggle">
-                <button class="view-btn active" data-view="table">
-                    <i class="fas fa-list"></i> Таблица
-                </button>
-                <button class="view-btn" data-view="cards">
-                    <i class="fas fa-th-large"></i> Карточки
-                </button>
-            </div>
-            
-            <!-- Таблица пользователей -->
-            <div class="admin-table-view" id="table-view">
-                <div class="admin-table-wrapper">
-                    <table id="users-table" class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Пользователь</th>
-                                <th>Email</th>
-                                <th>Роли</th>
-                                <th>Статус</th>
-                                <th>Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for user in users %}
-                                <tr class="user-row" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
-                                    <td>
-                                        <div class="user-info">
-                                            {% if user.avatar %}
-                                                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
-                                            {% else %}
-                                                <div class="user-avatar-placeholder">{{ user.username.0|upper }}</div>
-                                            {% endif %}
-                                            <div class="user-name-container">
-                                                <div class="name">{{ user.first_name }} {{ user.last_name }}</div>
-                                                <div class="username">@{{ user.username }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="user-email">{{ user.email }}</td>
-                                    <td class="user-roles">
-                                        {% if user.roles %}
-                                            {% for role in user.roles %}
-                                            <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
-                                            {% endfor %}
-                                        {% else %}
-                                            <span class="role-badge role-user">User</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="user-status">
-                                        <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
-                                            {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
-                                        </span>
-                                    </td>
-                                    <td class="user-actions">
-                                        <div class="action-buttons">
-                                            <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}" title="{% if user.is_active %}Деактивировать{% else %}Активировать{% endif %}">
-                                                <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
-                                            </button>
-                                            <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}" title="{% if user.is_admin %}Снять админа{% else %}Сделать админом{% endif %}">
-                                                <i class="fas fa-user-shield"></i>
-                                            </button>
-                                            <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}" title="{% if user.is_moder %}Снять модера{% else %}Сделать модером{% endif %}">
-                                                <i class="fas fa-user-cog"></i>
-                                            </button>
-                                            <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}" title="Редактировать">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            
-            <!-- Вид карточками -->
-            <div class="admin-cards-view hidden" id="cards-view">
-                <div class="user-cards-grid">
-                    {% for user in users %}
-                        <div class="user-card" data-user-id="{{ user.id }}" data-status="{{ user.is_active|yesno:'active,inactive' }}" data-roles="{{ user.roles|join:',' }}">
-                            <div class="user-card-header">
-                                {% if user.avatar %}
-                                    <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="card-avatar">
-                                {% else %}
-                                    <div class="card-avatar-placeholder">{{ user.username.0|upper }}{{ user.username.1|default:""|upper }}</div>
-                                {% endif %}
-                                <div class="card-user-info">
-                                    <h3 class="card-user-name">{{ user.first_name }} {{ user.last_name }}</h3>
-                                    <p class="card-username">@{{ user.username }}</p>
-                                </div>
-                            </div>
-                            <div class="user-card-body">
-                                <div class="card-info-row">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>{{ user.email }}</span>
-                                </div>
-                                {% if user.phone %}
-                                <div class="card-info-row">
-                                    <i class="fas fa-phone"></i>
-                                    <span>{{ user.phone }}</span>
-                                </div>
-                                {% endif %}
-                                <div class="card-info-row">
-                                    <i class="fas fa-user-tag"></i>
-                                    <div class="card-roles">
-                                        {% if user.roles %}
-                                            {% for role in user.roles %}
-                                            <span class="role-badge {% if role == 'Admin' %}role-admin{% elif role == 'Moder' %}role-moder{% endif %}">{{ role }}</span>
-                                            {% endfor %}
-                                        {% else %}
-                                            <span class="role-badge role-user">User</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="card-info-row">
-                                    <i class="fas fa-circle"></i>
-                                    <span class="status-badge {% if user.is_active %}status-active{% else %}status-inactive{% endif %}">
-                                        {% if user.is_active %}Активен{% else %}Неактивен{% endif %}
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="user-card-footer">
-                                <div class="card-actions">
-                                    <button class="admin-btn admin-btn-{% if user.is_active %}danger{% else %}success{% endif %} toggle-status-btn" data-user-id="{{ user.id }}" data-active="{{ user.is_active|lower }}">
-                                        <i class="fas {% if user.is_active %}fa-user-slash{% else %}fa-user-check{% endif %}"></i>
-                                    </button>
-                                    <button class="admin-btn {% if user.is_admin %}admin-btn-danger{% else %}admin-btn-success{% endif %} toggle-admin-btn" data-user-id="{{ user.id }}" data-is-admin="{{ user.is_admin|lower }}">
-                                        <i class="fas fa-user-shield"></i>
-                                    </button>
-                                    <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}">
-                                        <i class="fas fa-user-cog"></i>
-                                    </button>
-                                    <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                </div>
-                            </div>
+            <!-- Форма добавления/редактирования интереса -->
+            <div class="interest-form">
+                <h3 class="interest-form-title" id="interest-form-title">Добавить новый интерес</h3>
+                <form id="interest-form">
+                    <input type="hidden" id="interest-id" name="interest_id" value="">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="interest-name">Название*</label>
+                            <input type="text" id="interest-name" name="name" class="form-control" required>
                         </div>
-                    {% endfor %}
-                </div>
+                        <div class="form-group">
+                            <label for="interest-icon">Иконка</label>
+                            <input type="file" id="interest-icon" name="icon" class="form-control" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="interest-description">Описание</label>
+                        <textarea id="interest-description" name="description" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" id="interest-cancel-btn" class="admin-btn admin-btn-secondary" style="display:none;">Отмена</button>
+                        <button type="submit" class="admin-btn admin-btn-primary">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Таблица интересов -->
+            <div class="admin-table-wrapper">
+                <table class="interest-table" id="interests-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">Иконка</th>
+                            <th>Название</th>
+                            <th>Описание</th>
+                            <th style="width: 120px;">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="interests-list">
+                        <!-- Интересы будут добавлены через JavaScript -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -582,6 +741,25 @@
                     <button type="submit" class="admin-btn admin-btn-primary">Сохранить изменения</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения удаления -->
+<div id="delete-confirm-modal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+        <div class="modal-header">
+            <h2>Подтверждение удаления</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p id="delete-confirm-message">Вы уверены, что хотите удалить этот элемент? Это действие нельзя отменить.</p>
+            <input type="hidden" id="delete-item-id">
+            <input type="hidden" id="delete-item-type">
+            <div class="form-actions">
+                <button type="button" class="admin-btn admin-btn-secondary close-modal">Отмена</button>
+                <button type="button" id="confirm-delete-btn" class="admin-btn admin-btn-danger">Удалить</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1154,6 +1332,289 @@
             if (event.target === modal) {
                 modal.style.display = 'none';
             }
+        });
+        
+        // Управление табами
+        const tabs = document.querySelectorAll('.admin-tab');
+        const tabContents = document.querySelectorAll('.admin-tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                
+                // Убираем активный класс со всех табов и контента
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                
+                // Добавляем активный класс на выбранный таб и контент
+                this.classList.add('active');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // Загружаем данные для выбранного таба
+                if (tabId === 'interests' && !document.querySelector('.interest-loaded')) {
+                    loadInterests();
+                }
+            });
+        });
+        
+        // Управление интересами
+        let interests = [];
+        
+        // Загрузка списка интересов
+        async function loadInterests() {
+            try {
+                const response = await fetch('/app/api/admin/interests/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                });
+                
+                if (response.ok) {
+                    interests = await response.json();
+                    renderInterests();
+                    document.querySelector('#interests-tab').classList.add('interest-loaded');
+                } else {
+                    const error = await response.json();
+                    showNotification('Ошибка', error.message || 'Не удалось загрузить список интересов', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading interests:', error);
+                showNotification('Ошибка', 'Произошла ошибка при загрузке списка интересов', 'error');
+            }
+        }
+        
+        // Отображение списка интересов
+        function renderInterests() {
+            const interestsList = document.getElementById('interests-list');
+            interestsList.innerHTML = '';
+            
+            interests.forEach(interest => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        ${interest.icon ? 
+                          `<img src="${interest.icon}" alt="${interest.name}" class="interest-icon">` : 
+                          `<div class="icon-placeholder"><i class="fas fa-tag"></i></div>`}
+                    </td>
+                    <td>${interest.name}</td>
+                    <td>${interest.description || ''}</td>
+                    <td class="interest-actions">
+                        <button class="admin-btn admin-btn-primary edit-interest-btn" data-id="${interest.id}" title="Редактировать">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="admin-btn admin-btn-danger delete-interest-btn" data-id="${interest.id}" title="Удалить">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                interestsList.appendChild(row);
+            });
+            
+            // Добавляем обработчики для кнопок
+            document.querySelectorAll('.edit-interest-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const interestId = this.getAttribute('data-id');
+                    editInterest(interestId);
+                });
+            });
+            
+            document.querySelectorAll('.delete-interest-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const interestId = this.getAttribute('data-id');
+                    confirmDeleteInterest(interestId);
+                });
+            });
+        }
+        
+        // Редактирование интереса
+        function editInterest(interestId) {
+            const interest = interests.find(i => i.id === parseInt(interestId));
+            if (!interest) return;
+            
+            document.getElementById('interest-form-title').textContent = 'Редактировать интерес';
+            document.getElementById('interest-id').value = interest.id;
+            document.getElementById('interest-name').value = interest.name;
+            document.getElementById('interest-description').value = interest.description || '';
+            
+            // Показываем кнопку отмены
+            document.getElementById('interest-cancel-btn').style.display = 'inline-block';
+            
+            // Скроллим к форме
+            document.querySelector('.interest-form').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // Подтверждение удаления интереса
+        function confirmDeleteInterest(interestId) {
+            const interest = interests.find(i => i.id === parseInt(interestId));
+            if (!interest) return;
+            
+            const modal = document.getElementById('delete-confirm-modal');
+            document.getElementById('delete-confirm-message').textContent = 
+                `Вы уверены, что хотите удалить интерес "${interest.name}"? Это действие нельзя отменить.`;
+            document.getElementById('delete-item-id').value = interest.id;
+            document.getElementById('delete-item-type').value = 'interest';
+            
+            modal.style.display = 'block';
+        }
+        
+        // Обработчик формы интересов
+        const interestForm = document.getElementById('interest-form');
+        interestForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const interestId = document.getElementById('interest-id').value;
+            const interestName = document.getElementById('interest-name').value.trim();
+            const interestDescription = document.getElementById('interest-description').value.trim();
+            
+            // Проверка имени перед отправкой
+            if (!interestName) {
+                showNotification('Ошибка', 'Название интереса обязательно', 'error');
+                return;
+            }
+            
+            try {
+                const url = interestId ? 
+                    `/app/api/admin/interests/${interestId}/` : 
+                    '/app/api/admin/interests/';
+                
+                const method = interestId ? 'PUT' : 'POST';
+                const csrfToken = getCookie('csrftoken');
+                let response;
+                
+                // Для PUT запроса используем JSON вместо FormData
+                if (method === 'PUT') {
+                    // Проверяем наличие файла для загрузки
+                    const iconFile = document.getElementById('interest-icon').files[0];
+                    
+                    if (iconFile) {
+                        // Если есть файл, используем FormData
+                        const formData = new FormData();
+                        formData.append('name', interestName);
+                        formData.append('description', interestDescription);
+                        formData.append('icon', iconFile);
+                        
+                        console.log(`Отправка PUT запроса с FormData на ${url}. Имя: '${interestName}'`);
+                        
+                        response = await fetch(url, {
+                            method: 'PUT',
+                            body: formData,
+                            headers: {
+                                'X-CSRFToken': csrfToken
+                            }
+                        });
+                    } else {
+                        // Если нет файла, используем JSON для надежности
+                        const data = {
+                            name: interestName,
+                            description: interestDescription
+                        };
+                        
+                        console.log(`Отправка PUT запроса с JSON на ${url}. Данные:`, data);
+                        
+                        response = await fetch(url, {
+                            method: 'PUT',
+                            body: JSON.stringify(data),
+                            headers: {
+                                'X-CSRFToken': csrfToken,
+                                'Content-Type': 'application/json'
+                            }
+                        });
+                    }
+                } else {
+                    // Для POST запросов используем FormData (поддерживает загрузку файлов)
+                    const formData = new FormData(this);
+                    formData.set('name', interestName); // Убедимся, что имя добавлено
+                    
+                    console.log(`Отправка POST запроса на ${url} с именем '${interestName}'`);
+                    
+                    response = await fetch(url, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': csrfToken
+                        }
+                    });
+                }
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showNotification(
+                        'Успех', 
+                        interestId ? 'Интерес успешно обновлен' : 'Новый интерес успешно добавлен', 
+                        'success'
+                    );
+                    
+                    // Сбрасываем форму и обновляем список
+                    resetInterestForm();
+                    loadInterests();
+                } else {
+                    const error = await response.json();
+                    showNotification('Ошибка', error.message || 'Не удалось сохранить интерес', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving interest:', error);
+                showNotification('Ошибка', 'Произошла ошибка при сохранении интереса', 'error');
+            }
+        });
+        
+        // Кнопка отмены редактирования
+        document.getElementById('interest-cancel-btn').addEventListener('click', function() {
+            resetInterestForm();
+        });
+        
+        // Сброс формы интересов
+        function resetInterestForm() {
+            document.getElementById('interest-form-title').textContent = 'Добавить новый интерес';
+            document.getElementById('interest-id').value = '';
+            interestForm.reset();
+            document.getElementById('interest-cancel-btn').style.display = 'none';
+        }
+        
+        // Обработчик подтверждения удаления
+        document.getElementById('confirm-delete-btn').addEventListener('click', async function() {
+            const itemId = document.getElementById('delete-item-id').value;
+            const itemType = document.getElementById('delete-item-type').value;
+            
+            if (itemType === 'interest') {
+                try {
+                    const response = await fetch(`/app/api/admin/interests/${itemId}/`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        document.getElementById('delete-confirm-modal').style.display = 'none';
+                        showNotification('Успех', 'Интерес успешно удален', 'success');
+                        loadInterests();
+                    } else {
+                        const error = await response.json();
+                        showNotification('Ошибка', error.message || 'Не удалось удалить интерес', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting interest:', error);
+                    showNotification('Ошибка', 'Произошла ошибка при удалении интереса', 'error');
+                }
+            }
+        });
+        
+        // Поиск интересов
+        document.getElementById('interest-search').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#interests-list tr');
+            
+            rows.forEach(row => {
+                const name = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const description = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                
+                if (name.includes(searchTerm) || description.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
     });
 </script>

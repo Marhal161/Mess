@@ -9,9 +9,16 @@ from .views.InterestView import InterestListView
 from .views.HomeView import HomeView
 from .views.ProfileView import ProfileTemplateView, ProfileView, ChangePasswordView
 from .views.ChatView import ChatRoomView, ChatRoomListView
-from .views.ChatApiView import ChatMessagesAPI, UnreadMessagesCountAPI, MarkMessagesAsReadAPI, ChatListAPI, EditMessageAPI, DeleteMessageAPI
+from .views.ChatApiView import ChatMessagesAPI, UnreadMessagesCountAPI, MarkMessagesAsReadAPI, ChatListAPI, EditMessageAPI, DeleteMessageAPI, ReportChatAPI
 from .views.LikeView import LikeUserView, CheckLikeView, LikesCountView
-from .views.AdminView import AdminPanelView, AdminUserEditView, AdminUserUpdateAPI, AdminUserToggleStatusAPI
+from .views.AdminView import (
+    AdminPanelView, AdminUserEditView, AdminUserUpdateAPI, AdminUserToggleStatusAPI,
+    AdminInterestAPI, AdminInterestDetailAPI, AdminRolesAPI
+)
+from .views.ModerView import (
+    ModeratorPanelView, ReportListView, ReportDetailView, 
+    ModerUserManagementView, ModerUserAPIView, ModerDeleteMessageAPIView
+)
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -47,12 +54,29 @@ urlpatterns = [
     path('api/chat/list/', ChatListAPI.as_view(), name='chat_list_api'),
     path('api/chat/edit-message/<int:message_id>/', EditMessageAPI.as_view(), name='edit_message_api'),
     path('api/chat/delete-message/<int:message_id>/', DeleteMessageAPI.as_view(), name='delete_message_api'),
+    path('api/chat/report/<str:room_name>/', ReportChatAPI.as_view(), name='report_chat_api'),
     
     # Админ-панель
     path('admin-panel/', AdminPanelView.as_view(), name='admin_panel'),
     path('admin-panel/user/<str:user_id>/', AdminUserEditView.as_view(), name='admin_user_edit'),
     path('admin-panel/user/<str:user_id>/update/', AdminUserUpdateAPI.as_view(), name='admin_user_update'),
     path('admin-panel/user/<str:user_id>/toggle-status/', AdminUserToggleStatusAPI.as_view(), name='admin_user_toggle_status'),
+    
+    # Admin API для интересов
+    path('api/admin/interests/', AdminInterestAPI.as_view(), name='admin_interests_api'),
+    path('api/admin/interests/<int:interest_id>/', AdminInterestDetailAPI.as_view(), name='admin_interest_detail_api'),
+    path('api/admin/roles/', AdminRolesAPI.as_view(), name='admin_roles_api'),
+    
+    # Панель модератора
+    path('moderator/', ModeratorPanelView.as_view(), name='moder_panel'),
+    path('moderator/reports/', ReportListView.as_view(), name='moder_reports_list'),
+    path('moderator/reports/<int:report_id>/', ReportDetailView.as_view(), name='moder_report_detail'),
+    path('moderator/users/', ModerUserManagementView.as_view(), name='moder_users_list'),
+    path('moderator/users/<int:user_id>/', ModerUserManagementView.as_view(), name='moder_user_detail'),
+    
+    # API для модераторов
+    path('api/moderator/user/<int:user_id>/', ModerUserAPIView.as_view(), name='moder_user_api'),
+    path('api/moderator/message/delete/<int:message_id>/', ModerDeleteMessageAPIView.as_view(), name='moder_delete_message_api'),
 ]
 
 if settings.DEBUG:

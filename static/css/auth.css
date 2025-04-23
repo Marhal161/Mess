@@ -1,5 +1,71 @@
 @import 'variables.css';
 
+/* Улучшенные анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes interestAppear {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Контейнер для форм авторизации */
 .auth-container {
     min-height: 100vh;
@@ -8,6 +74,8 @@
     justify-content: center;
     background-color: var(--background-secondary);
     padding: var(--spacing-md);
+    position: relative;
+    overflow: hidden;
 }
 
 /* Стили для форм */
@@ -19,6 +87,8 @@
     width: 100%;
     max-width: 480px;
     margin: 0 auto;
+    position: relative;
+    overflow: hidden;
 }
 
 .auth-form h1 {
@@ -26,6 +96,7 @@
     margin-bottom: var(--spacing-xl);
     color: var(--text-primary);
     font-size: var(--font-size-2xl);
+    animation: fadeInUp 0.5s ease;
 }
 
 /* Стили для групп полей */
@@ -84,6 +155,9 @@
 .form-actions {
     margin-top: var(--spacing-xl);
     text-align: center;
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-md);
 }
 
 .btn-primary {
@@ -96,11 +170,29 @@
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transition: left 0.7s ease;
+}
+
+.btn-primary:hover:before {
+    left: 100%;
 }
 
 .btn-primary:hover {
     background-color: var(--primary-dark);
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .btn-secondary {
@@ -113,12 +205,31 @@
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-normal);
-    margin-right: var(--spacing-md);
 }
 
 .btn-secondary:hover {
     background-color: var(--border-color);
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.btn-back {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-normal);
+    animation: fadeIn 0.4s ease;
+}
+
+.btn-back:hover {
+    color: var(--primary-color);
 }
 
 /* Стили для сообщений об ошибках */
@@ -226,13 +337,26 @@
 }
 
 /* Стили для двухшаговой регистрации */
+#step-1 {
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+#step-1.fade-out {
+    opacity: 0;
+    transform: translateX(-50px);
+}
+
 #step-2 {
     display: none;
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
 #step-2.fade-in {
     display: block;
-    animation: fadeIn var(--transition-normal);
+    opacity: 1;
+    animation: slideInRight 0.5s ease forwards;
 }
 
 /* Стили для интересов */
@@ -241,6 +365,7 @@
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: var(--spacing-md);
     margin: var(--spacing-lg) 0;
+    min-height: 200px;
 }
 
 .interest-item {
@@ -250,37 +375,105 @@
     padding: var(--spacing-md);
     text-align: center;
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    animation: interestAppear 0.3s ease forwards;
+    animation-delay: calc(var(--index) * 0.05s);
+}
+
+.interest-item:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.3s ease;
 }
 
 .interest-item:hover {
     border-color: var(--primary-color);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.interest-item:hover:before {
+    opacity: 0.05;
 }
 
 .interest-item.selected {
     background-color: var(--primary-light);
     border-color: var(--primary-color);
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.interest-item.selected:before {
+    opacity: 0.1;
+}
+
+.interest-item.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 /* Стили для иконок интересов */
 .interest-icon {
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     margin-bottom: var(--spacing-sm);
     display: block;
+    transition: transform 0.3s ease;
+}
+
+.interest-item:hover .interest-icon,
+.interest-item.selected .interest-icon {
+    transform: scale(1.1);
 }
 
 .interest-icon-img {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
     object-fit: contain;
     margin-bottom: var(--spacing-sm);
+    transition: transform 0.3s ease;
+}
+
+.interest-item:hover .interest-icon-img,
+.interest-item.selected .interest-icon-img {
+    transform: scale(1.1);
 }
 
 .interest-name {
     font-weight: 500;
     color: var(--text-primary);
     font-size: var(--font-size-sm);
+    transition: color 0.3s ease;
+}
+
+.interest-item.selected .interest-name {
+    color: var(--primary-color);
 }
 
 .interest-description {
@@ -289,15 +482,51 @@
     margin-top: var(--spacing-xs);
 }
 
-/* Адаптивность */
-@media (max-width: 480px) {
-    .auth-form {
-        padding: var(--spacing-lg);
-    }
-    
-    .interests-grid {
-        grid-template-columns: 1fr;
-    }
+/* Стили для подсказки интересов */
+.interests-hint {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    animation: fadeIn 0.5s ease;
+    text-align: center;
+}
+
+/* Стили для сообщений */
+.message {
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin: var(--spacing-md) 0;
+    display: flex;
+    align-items: center;
+    animation: fadeIn 0.4s ease;
+}
+
+.message.error {
+    background-color: var(--error-light);
+    color: var(--error-color);
+    border-left: 4px solid var(--error-color);
+}
+
+.message.info {
+    background-color: var(--info-light);
+    color: var(--info-color);
+    border-left: 4px solid var(--info-color);
+}
+
+.message i {
+    margin-right: var(--spacing-sm);
+    font-size: 1.2rem;
+}
+
+/* Стили для счетчика выбранных интересов */
+.interest-count {
+    background-color: var(--primary-dark);
+    color: white;
+    border-radius: 20px;
+    padding: 0.2rem 0.5rem;
+    font-size: var(--font-size-xs);
+    margin-left: var(--spacing-xs);
+    animation: fadeIn 0.3s ease;
 }
 
 /* Стили для секций формы */

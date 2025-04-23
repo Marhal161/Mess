@@ -59,6 +59,22 @@
         .admin-link i {
             color: #ff9800;
         }
+        
+        .moderator-link {
+            background-color: rgba(33, 150, 243, 0.1);
+            border-radius: 4px;
+            padding-left: 10px !important;
+            padding-right: 10px !important;
+            transition: background-color 0.3s;
+        }
+        
+        .moderator-link:hover {
+            background-color: rgba(33, 150, 243, 0.2);
+        }
+        
+        .moderator-link i {
+            color: #2196F3;
+        }
     </style>
 </head>
 <body>
@@ -78,6 +94,9 @@
                     {% for role in user.role.all %}
                         {% if role.name == 'Admin' %}
                         <a href="/app/admin-panel/" class="nav-link admin-link"><i class="fas fa-shield-alt"></i> Админ-панель</a>
+                        {% endif %}
+                        {% if role.name == 'Moder' %}
+                        <a href="/app/moderator/" class="nav-link moderator-link"><i class="fas fa-gavel"></i> Панель модератора</a>
                         {% endif %}
                     {% endfor %}
                     <a href="/app/logout/" class="nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Выйти</a>

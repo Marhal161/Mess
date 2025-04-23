@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ..models import ChatMessage, User
+from ..models import ChatMessage, User, ChatReport
 from ..decorators import check_auth_tokens
 from django.utils.decorators import method_decorator
 import logging
@@ -9,6 +9,7 @@ import re
 from django.db.models import Q, Max, F, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 import traceback
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -422,5 +423,68 @@ class DeleteMessageAPI(APIView):
             logger.error(traceback.format_exc())
             return Response(
                 {"detail": "Произошла ошибка при удалении сообщения", "status": "error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ReportChatAPI(APIView):
+    """
+    API для отправки жалобы на чат
+    """
+    
+    @method_decorator(check_auth_tokens)
+    def post(self, request, room_name):
+        """
+        Создание жалобы на чат
+        """
+        try:
+            # Проверяем аутентификацию
+            if not request.user.is_authenticated:
+                return Response(
+                    {"detail": "Пользователь не аутентифицирован"},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+            
+            # Получаем описание проблемы из запроса
+            description = request.data.get('description', '')
+            
+            if not description.strip():
+                return Response(
+                    {"detail": "Необходимо описать проблему"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Если это личный чат, проверяем, является ли пользователь участником
+            direct_chat_match = re.match(r'^direct_(\d+)_(\d+)$', room_name)
+            if direct_chat_match:
+                user_id1 = int(direct_chat_match.group(1))
+                user_id2 = int(direct_chat_match.group(2))
+                
+                if request.user.id not in [user_id1, user_id2]:
+                    return Response(
+                        {"detail": "У вас нет доступа к этому чату"},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            
+            # Создаем новую жалобу
+            report = ChatReport(
+                reporter=request.user,
+                room_name=room_name,
+                description=description
+            )
+            report.save()
+            
+            logger.info(f"Пользователь {request.user.username} отправил жалобу на чат {room_name}")
+            
+            return Response({
+                'status': 'success',
+                'message': 'Жалоба успешно отправлена',
+                'report_id': report.id
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при отправке жалобы на чат: {str(e)}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"detail": "Произошла ошибка при отправке жалобы"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 

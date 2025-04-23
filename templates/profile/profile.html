@@ -15,6 +15,41 @@
     font-family: monospace;
     white-space: pre-wrap;
 }
+
+/* Стили для предупреждения пользователя */
+.user-warning-badge {
+    background-color: #dc3545;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.user-warning-badge i {
+    font-size: 18px;
+}
+
+.warning-banner {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.warning-banner i {
+    font-size: 24px;
+    color: #dc3545;
+}
 </style>
 {% endblock %}
 
@@ -29,6 +64,20 @@
     </div>
     {% endif %}
 
+    {% if profile_user.has_warnings %}
+    <div class="warning-banner">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong>Внимание!</strong> У данного пользователя есть предупреждения от модераторов. 
+            {% if is_own_profile %}
+            Пожалуйста, соблюдайте правила общения.
+            {% else %}
+            Рекомендуем соблюдать осторожность при общении.
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="profile-header">
         <div class="profile-info-main">
             <div id="profile-avatar" class="profile-avatar">
@@ -38,6 +87,13 @@
                     <div class="profile-image-placeholder">
                         <span>{{ profile_user.first_name.0 }}{{ profile_user.last_name.0 }}</span>
                     </div>
+                {% endif %}
+                
+                {% if profile_user.has_warnings %}
+                <div class="user-warning-badge">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Предупреждение</span>
+                </div>
                 {% endif %}
             </div>
             <div class="profile-text-info">
@@ -214,6 +270,7 @@
                         <div class="password-strength-meter">
                             <div class="strength-bar" id="strength-bar"></div>
                         </div>
+                        <h4 style="margin-top: 15px; margin-bottom: 8px; color: var(--primary-color);">Требования к паролю:</h4>
                         <div class="password-requirements" id="password-requirements">
                             <div class="requirement" data-requirement="length">
                                 <span class="check">✓</span> Не менее 8 символов

@@ -514,7 +514,7 @@
 }
 
 .modal-content {
-    background-color: var(--background-primary);
+    background-color: var(--background-light);
     border-radius: var(--radius-lg);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     width: 90%;
@@ -622,11 +622,12 @@
 
 /* Индикаторы силы пароля */
 .password-strength-meter {
-    margin-top: var(--spacing-sm);
-    height: 5px;
+    margin-top: var(--spacing-md);
+    height: 8px;
     background-color: var(--border-color);
     border-radius: var(--radius-full);
     overflow: hidden;
+    margin-bottom: var(--spacing-sm);
 }
 
 .strength-bar {
@@ -661,26 +662,36 @@
 }
 
 .password-requirements {
-    margin-top: var(--spacing-sm);
+    margin-top: var(--spacing-md);
     font-size: var(--font-size-sm);
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 8px;
+    background-color: var(--background-secondary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-md);
 }
 
 .requirement {
     color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    background-color: var(--background-primary);
+    transition: all 0.2s ease;
 }
 
 .requirement .check {
     color: var(--text-secondary);
+    font-weight: bold;
 }
 
 .requirement.met {
     color: var(--success-color);
+    background-color: rgba(82, 196, 26, 0.1);
 }
 
 .requirement.met .check {
@@ -689,6 +700,7 @@
 
 .requirement.not-met {
     color: var(--danger-color);
+    background-color: rgba(255, 77, 79, 0.1);
 }
 
 .requirement.not-met .check {
@@ -821,6 +833,10 @@
         left: var(--spacing-md);
         right: var(--spacing-md);
         max-width: none;
+    }
+    
+    .password-requirements {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -1117,4 +1133,44 @@
     background-color: #dc2626;
     transform: translateY(-3px);
     box-shadow: var(--shadow-lg);
+}
+
+/* Специальные стили для модального окна пароля */
+#password-modal .modal-content {
+    max-width: 500px;
+}
+
+#password-modal .modal-header {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+}
+
+#password-modal .modal-body {
+    padding: var(--spacing-xl);
+}
+
+#password-modal .form-group {
+    margin-bottom: var(--spacing-lg);
+}
+
+#password-modal .form-actions {
+    margin-top: var(--spacing-xl);
+}
+
+#password-modal .btn-primary {
+    min-width: 180px;
+}
+
+/* Улучшаем стиль кнопок в модальных окнах */
+.modal .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.modal .form-actions button {
+    min-width: 120px;
+    padding: 12px 24px;
+    font-weight: 500;
 }

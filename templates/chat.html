@@ -4,6 +4,141 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="/static/css/chat.css">
+<style>
+    /* Стили для модального окна жалобы */
+    .report-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow: auto;
+    }
+
+    .report-modal-content {
+        background-color: white;
+        margin: 15% auto;
+        padding: 25px;
+        border-radius: 12px;
+        width: 80%;
+        max-width: 500px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        animation: modalAppear 0.3s ease;
+    }
+
+    .report-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .report-modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .report-close {
+        color: #aaa;
+        font-size: 24px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .report-close:hover {
+        color: var(--primary-color);
+    }
+
+    .report-form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .report-textarea {
+        min-height: 120px;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        resize: vertical;
+        font-family: var(--font-family);
+    }
+
+    .report-submit-btn {
+        padding: 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .report-submit-btn:hover {
+        background-color: var(--primary-dark);
+    }
+
+    .report-submit-btn:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+
+    @keyframes modalAppear {
+        from { opacity: 0; transform: translateY(-50px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .report-button {
+        background: none;
+        color: white;
+        border: none;
+        padding: 5px 8px;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+    
+    .report-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .report-button i {
+        margin-right: 5px;
+    }
+    
+    .report-success-message {
+        text-align: center;
+        color: var(--success-color);
+        font-weight: 500;
+        margin: 10px 0;
+    }
+    
+    .report-error-message {
+        text-align: center;
+        color: var(--error-color);
+        font-weight: 500;
+        margin: 10px 0;
+    }
+
+    .moder-badge {
+        color: var(--primary-color);
+        font-size: 12px;
+        margin-right: 5px;
+        cursor: help;
+    }
+    
+    .message.self .moder-badge {
+        display: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -32,7 +167,11 @@
             {{ chat_title }}
             {% endif %}
         </div>
-        <div style="width: 30px;"></div> <!-- Для выравнивания центрального элемента -->
+        <div>
+            <button class="report-button" id="report-button">
+                <i class="fas fa-flag"></i> Пожаловаться
+            </button>
+        </div>
     </div>
     <div class="chat-container">
         <div class="messages-preloader" id="messages-preloader">
@@ -48,14 +187,44 @@
         </div>
     </div>
 </div>
+
+<!-- Модальное окно для жалобы -->
+<div id="report-modal" class="report-modal">
+    <div class="report-modal-content">
+        <div class="report-modal-header">
+            <div class="report-modal-title">Отправить жалобу на чат</div>
+            <span class="report-close" id="report-close">&times;</span>
+        </div>
+        <div class="report-form">
+            <div>Опишите причину жалобы:</div>
+            <textarea id="report-description" class="report-textarea" placeholder="Подробно опишите проблему..."></textarea>
+            <div id="report-message" class="report-success-message" style="display: none;"></div>
+            <button id="report-submit" class="report-submit-btn">Отправить жалобу</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
+<!-- Передаем данные о пользователе через JSON -->
+<script id="user-data" type="application/json">
+{
+    "id": {% if user.id %}{{ user.id }}{% else %}null{% endif %},
+    "username": "{% if user.username %}{{ user.username }}{% endif %}",
+    "room_name": "{{ room_name }}",
+    "is_moderator": {% if user.is_authenticated and user.role.name == 'Moder' %}true{% else %}false{% endif %},
+    "request_user_id": {{ request.user.id|default:"null" }}
+}
+</script>
+
 <script>
-    // Получаем информацию о текущем пользователе
-    const currentUserId = {{ user.id|default:"null" }};
-    const currentUsername = "{{ user.username|default:"" }}";
-    const roomName = "{{ room_name }}";
+    // Получаем информацию о текущем пользователе из JSON
+    const userData = JSON.parse(document.getElementById('user-data').textContent);
+    const currentUserId = userData.id;
+    const currentUsername = userData.username;
+    const roomName = userData.room_name;
+    const isModeratorUser = userData.is_moderator;
+    const requestUserId = userData.request_user_id;
     
     // Создаем WebSocket соединение
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -66,6 +235,81 @@
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
     const messagesPreloader = document.getElementById('messages-preloader');
+    
+    // Элементы для функционала жалоб
+    const reportButton = document.getElementById('report-button');
+    const reportModal = document.getElementById('report-modal');
+    const reportClose = document.getElementById('report-close');
+    const reportSubmit = document.getElementById('report-submit');
+    const reportDescription = document.getElementById('report-description');
+    const reportMessage = document.getElementById('report-message');
+    
+    // Обработчики для модального окна жалобы
+    reportButton.addEventListener('click', () => {
+        reportModal.style.display = 'block';
+        reportDescription.value = '';
+        reportMessage.style.display = 'none';
+        reportSubmit.disabled = false;
+    });
+    
+    reportClose.addEventListener('click', () => {
+        reportModal.style.display = 'none';
+    });
+    
+    // Закрытие модального окна при клике вне его
+    window.addEventListener('click', (event) => {
+        if (event.target === reportModal) {
+            reportModal.style.display = 'none';
+        }
+    });
+    
+    // Отправка жалобы
+    reportSubmit.addEventListener('click', () => {
+        const description = reportDescription.value.trim();
+        
+        if (!description) {
+            reportMessage.textContent = 'Пожалуйста, опишите проблему';
+            reportMessage.className = 'report-error-message';
+            reportMessage.style.display = 'block';
+            return;
+        }
+        
+        reportSubmit.disabled = true;
+        
+        fetch(`/app/api/chat/report/${roomName}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ description })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                reportMessage.textContent = 'Жалоба успешно отправлена';
+                reportMessage.className = 'report-success-message';
+                reportMessage.style.display = 'block';
+                
+                // Закрыть модальное окно через 2 секунды
+                setTimeout(() => {
+                    reportModal.style.display = 'none';
+                }, 2000);
+            } else {
+                reportMessage.textContent = data.detail || 'Произошла ошибка при отправке жалобы';
+                reportMessage.className = 'report-error-message';
+                reportMessage.style.display = 'block';
+                reportSubmit.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при отправке жалобы:', error);
+            reportMessage.textContent = 'Произошла ошибка при отправке жалобы';
+            reportMessage.className = 'report-error-message';
+            reportMessage.style.display = 'block';
+            reportSubmit.disabled = false;
+        });
+    });
     
     // Инициализация
     let messagesLoaded = false;
@@ -80,7 +324,6 @@
     
     // Функция настройки обработчиков WebSocket
     function setupWebSocketHandlers() {
-        // Этот код добавляется перед обработчиком onmessage функции setupWebSocketHandlers
         chatSocket.onerror = function(error) {
             console.error('WebSocket ошибка:', error);
             isConnected = false;
@@ -94,7 +337,7 @@
                 
                 // Обработка различных типов сообщений
                 if (data.type === 'typing_status') {
-                    if (data.user_id !== {{ request.user.id }}) {
+                    if (data.user_id !== requestUserId) {
                         handleTypingIndicator(data.username, data.is_typing);
                     }
                     return;
@@ -108,8 +351,6 @@
                 if (data.type === 'delete_message') {
                     console.log(`УДАЛЕНИЕ: Получено событие удаления сообщения ${data.message_id}`);
                     
-                    // Просто вызываем функцию удаления с полученным ID сообщения
-                    // Никаких перезагрузок и сложной логики
                     const success = deleteMessageFromDom(data.message_id);
                     
                     if (success) {
@@ -117,8 +358,6 @@
                     } else {
                         console.warn(`УДАЛЕНИЕ: Не удалось найти и удалить сообщение ${data.message_id}`);
                         
-                        // В случае неудачи оставляем возможность перезагрузить историю
-                        // через 2 секунды, если сообщение все еще присутствует в DOM
                         setTimeout(() => {
                             const stillExists = document.querySelector(`[data-message-id="${data.message_id}"]`);
                             if (stillExists) {
@@ -785,58 +1024,31 @@
     
     // Функция для удаления сообщения
     function deleteMessage(messageId) {
-        if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
-            // Добавляем визуальную индикацию процесса удаления
-            const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                messageElement.style.opacity = '0.5';
+        // Определяем, какой API использовать в зависимости от роли
+        const apiUrl = isModeratorUser 
+            ? `/app/api/moderator/message/delete/${messageId}/`
+            : `/app/api/chat/delete-message/${messageId}/`;
+        
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
             }
-            
-            // Отправляем запрос на удаление на сервер
-            fetch(`/app/api/chat/delete-message/${messageId}/`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log(`Сообщение ${messageId} успешно удалено на сервере`);
-                    
-                    // Удаляем сообщение локально
-                    deleteMessageFromDom(messageId);
-                    
-                    // Отправляем событие удаления через WebSocket
-                    if (isConnected) {
-                        // Отправляем событие удаления в упрощенном виде
-                        chatSocket.send(JSON.stringify({
-                            'type': 'delete_message',
-                            'message_id': messageId
-                        }));
-                        
-                        console.log(`WebSocket: отправлено событие удаления сообщения ${messageId}`);
-                    } else {
-                        console.warn('WebSocket соединение не активно, другие пользователи не получат уведомление об удалении');
-                        alert('Соединение нестабильно. Удаление может не отобразиться у других пользователей до обновления страницы.');
-                    }
-                } else {
-                    console.error('Ошибка при удалении сообщения:', data.detail);
-                    // Восстанавливаем видимость сообщения в случае ошибки
-                    if (messageElement) {
-                        messageElement.style.opacity = '1';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка при отправке запроса на удаление:', error);
-                // Восстанавливаем видимость сообщения в случае ошибки
-                if (messageElement) {
-                    messageElement.style.opacity = '1';
-                }
-            });
-        }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Удаляем сообщение из DOM
+                deleteMessageFromDom(messageId);
+                console.log('Сообщение успешно удалено');
+            } else {
+                console.error('Ошибка при удалении сообщения:', data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при удалении сообщения:', error);
+        });
     }
 </script>
 {% endblock %} 

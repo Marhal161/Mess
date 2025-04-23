@@ -1,0 +1,584 @@
+{% extends 'base.html' %}
+
+{% block title %}Просмотр жалобы - Панель модератора - Mess{% endblock %}
+
+{% block extra_css %}
+<style>
+    .moder-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .moder-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .moder-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .moder-subtitle {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 25px 0 15px;
+    }
+    
+    .moder-user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .moder-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .moder-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .moder-menu-item {
+        padding: 12px 20px;
+        background-color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-primary);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s;
+    }
+    
+    .moder-menu-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+    
+    .moder-menu-item.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .moder-report-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+    
+    .moder-report-header {
+        padding: 20px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .moder-report-status {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+    
+    .moder-report-status.pending {
+        background-color: #FFF3CD;
+        color: #856404;
+    }
+    
+    .moder-report-status.processed {
+        background-color: #D4EDDA;
+        color: #155724;
+    }
+    
+    .moder-report-status.rejected {
+        background-color: #F8D7DA;
+        color: #721C24;
+    }
+    
+    .moder-report-content {
+        padding: 20px;
+    }
+    
+    .moder-report-row {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .moder-report-label {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+    
+    .moder-report-value {
+        font-size: 16px;
+        color: var(--text-primary);
+    }
+    
+    .moder-report-description {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 5px;
+        white-space: pre-line;
+    }
+    
+    .moder-report-actions {
+        padding: 20px;
+        display: flex;
+        gap: 15px;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    .moder-btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .moder-btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .moder-btn-primary:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .moder-btn-secondary {
+        background-color: #f8f9fa;
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+    }
+    
+    .moder-btn-secondary:hover {
+        background-color: var(--border-color);
+    }
+    
+    .moder-btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .moder-btn-danger:hover {
+        background-color: #bd2130;
+    }
+    
+    .moder-chat-preview {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+    
+    .moder-chat-header {
+        padding: 15px 20px;
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .moder-chat-messages {
+        padding: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        background-color: var(--background-secondary);
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .moder-message {
+        display: flex;
+        margin-bottom: 15px;
+        align-items: flex-start;
+        max-width: 80%;
+    }
+    
+    .moder-message.self {
+        flex-direction: row-reverse;
+        align-self: flex-end;
+    }
+    
+    .moder-message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 10px;
+        margin-left: 0;
+        flex-shrink: 0;
+    }
+    
+    .moder-message.self .moder-message-avatar {
+        margin-right: 0;
+        margin-left: 10px;
+    }
+    
+    .moder-message-content {
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 0 8px 8px 8px;
+        max-width: 100%;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .moder-message.self .moder-message-content {
+        background-color: var(--primary-light);
+        border-radius: 8px 0 8px 8px;
+    }
+    
+    .moder-message-header {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
+    
+    .moder-message-username {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .moder-message-text {
+        word-break: break-word;
+    }
+    
+    .moder-message-actions {
+        margin-top: 5px;
+        display: flex;
+        gap: 10px;
+    }
+    
+    .moder-message-delete-btn {
+        font-size: 12px;
+        color: #dc3545;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 3px;
+        transition: background-color 0.2s;
+    }
+    
+    .moder-message-delete-btn:hover {
+        background-color: #f8d7da;
+    }
+    
+    .moder-chat-actions {
+        padding: 15px 20px;
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .moder-notes-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        min-height: 100px;
+        resize: vertical;
+        margin-top: 10px;
+        font-family: inherit;
+    }
+    
+    .moder-users-list {
+        margin-top: 10px;
+    }
+    
+    .moder-user-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 6px;
+    }
+    
+    .moder-user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .moder-user-info {
+        flex-grow: 1;
+    }
+    
+    .moder-user-name {
+        font-weight: 600;
+    }
+    
+    .moder-user-view-btn {
+        padding: 6px 12px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .moder-user-view-btn:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 30px;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="moder-dashboard">
+    <div class="moder-header">
+        <h1 class="moder-title">Просмотр жалобы #{{ report.id }}</h1>
+        <div class="moder-user-info">
+            <span>{{ user.first_name }} {{ user.last_name }}</span>
+            {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="moder-avatar">
+            {% else %}
+                <div class="moder-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="moder-menu">
+        <a href="{% url 'moder_panel' %}" class="moder-menu-item">
+            <i class="fas fa-home"></i> Главная
+        </a>
+        <a href="{% url 'moder_reports_list' %}" class="moder-menu-item active">
+            <i class="fas fa-flag"></i> Жалобы
+        </a>
+        <a href="{% url 'moder_users_list' %}" class="moder-menu-item">
+            <i class="fas fa-users"></i> Пользователи
+        </a>
+        <a href="{% url 'home' %}" class="moder-menu-item">
+            <i class="fas fa-arrow-left"></i> Вернуться на сайт
+        </a>
+    </div>
+    
+    <div class="moder-report-card">
+        <div class="moder-report-header">
+            <div>Информация о жалобе</div>
+            <span class="moder-report-status {{ report.status }}">
+                {{ report.get_status_display }}
+            </span>
+        </div>
+        <div class="moder-report-content">
+            <div class="moder-report-row">
+                <div class="moder-report-label">Отправитель:</div>
+                <div class="moder-report-value">
+                    {{ report.reporter.username }} ({{ report.reporter.first_name }} {{ report.reporter.last_name }})
+                    <a href="{% url 'moder_user_detail' user_id=report.reporter.id %}" class="moder-user-view-btn">
+                        <i class="fas fa-eye"></i> Профиль
+                    </a>
+                </div>
+            </div>
+            
+            <div class="moder-report-row">
+                <div class="moder-report-label">Чат:</div>
+                <div class="moder-report-value">{{ report.room_name }}</div>
+            </div>
+            
+            <div class="moder-report-row">
+                <div class="moder-report-label">Дата создания:</div>
+                <div class="moder-report-value">{{ report.created_at|date:"d.m.Y H:i" }}</div>
+            </div>
+            
+            <div class="moder-report-row">
+                <div class="moder-report-label">Описание проблемы:</div>
+                <div class="moder-report-description">{{ report.description }}</div>
+            </div>
+            
+            {% if report.status != 'pending' %}
+            <div class="moder-report-row">
+                <div class="moder-report-label">Обработано модератором:</div>
+                <div class="moder-report-value">{{ report.processed_by.username }} ({{ report.processed_at|date:"d.m.Y H:i" }})</div>
+            </div>
+            
+            {% if report.moderator_notes %}
+            <div class="moder-report-row">
+                <div class="moder-report-label">Примечания модератора:</div>
+                <div class="moder-report-description">{{ report.moderator_notes }}</div>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+        
+        {% if report.status == 'pending' %}
+        <form method="post" class="moder-report-actions">
+            {% csrf_token %}
+            <div style="flex-grow: 1;">
+                <label for="notes">Примечания модератора:</label>
+                <textarea name="notes" id="notes" class="moder-notes-textarea" placeholder="Введите примечания или комментарии..."></textarea>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px; justify-content: flex-end;">
+                <button type="submit" name="action" value="process" class="moder-btn moder-btn-primary">
+                    <i class="fas fa-check"></i> Принять жалобу
+                </button>
+                <button type="submit" name="action" value="reject" class="moder-btn moder-btn-danger">
+                    <i class="fas fa-times"></i> Отклонить жалобу
+                </button>
+            </div>
+        </form>
+        {% endif %}
+    </div>
+    
+    {% if chat_users %}
+    <h2 class="moder-subtitle">Участники чата</h2>
+    <div class="moder-users-list">
+        {% for chat_user in chat_users %}
+        <div class="moder-user-item">
+            <div class="moder-user-avatar">
+                {% if chat_user.avatar %}
+                    <img src="{{ chat_user.avatar.url }}" alt="{{ chat_user.username }}" width="40" height="40" style="border-radius: 50%">
+                {% else %}
+                    {{ chat_user.first_name|slice:":1" }}{{ chat_user.last_name|slice:":1" }}
+                {% endif %}
+            </div>
+            <div class="moder-user-info">
+                <div class="moder-user-name">{{ chat_user.first_name }} {{ chat_user.last_name }}</div>
+                <div class="moder-user-username">@{{ chat_user.username }}</div>
+            </div>
+            <a href="{% url 'moder_user_detail' user_id=chat_user.id %}" class="moder-user-view-btn">
+                <i class="fas fa-user"></i> Профиль
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <h2 class="moder-subtitle">Сообщения чата</h2>
+    
+    <div class="moder-chat-preview">
+        <div class="moder-chat-header">
+            <div>Предпросмотр чата: {{ room_name }}</div>
+            <a href="{% url 'chat_room' room_name=room_name %}" class="moder-btn moder-btn-secondary" style="padding: 6px 12px; font-size: 14px;">
+                <i class="fas fa-external-link-alt"></i> Открыть чат
+            </a>
+        </div>
+        <div class="moder-chat-messages">
+            {% if recent_messages %}
+                {% for message in recent_messages %}
+                <div class="moder-message {% if message.user == report.reporter %}self{% endif %}" data-message-id="{{ message.id }}">
+                    <div class="moder-message-avatar">
+                        {% if message.user.avatar %}
+                            <img src="{{ message.user.avatar.url }}" alt="{{ message.user.username }}" width="36" height="36" style="border-radius: 50%">
+                        {% else %}
+                            {{ message.user.first_name|slice:":1" }}{{ message.user.last_name|slice:":1" }}
+                        {% endif %}
+                    </div>
+                    <div style="max-width: 100%">
+                        <div class="moder-message-content">
+                            <div class="moder-message-header">
+                                <span class="moder-message-username">{{ message.user.username }}</span>
+                                <span>{{ message.timestamp|date:"d.m.Y H:i" }}</span>
+                            </div>
+                            <div class="moder-message-text">{{ message.message }}</div>
+                        </div>
+                        <div class="moder-message-actions">
+                            <button class="moder-message-delete-btn" onclick="deleteMessage({{ message.id }})">
+                                <i class="fas fa-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comments" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>В этом чате пока нет сообщений.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Функция для удаления сообщения
+    function deleteMessage(messageId) {
+        if (confirm('Вы уверены, что хотите удалить это сообщение?')) {
+            // Отправляем запрос на удаление на сервер
+            fetch(`/app/api/moderator/message/delete/${messageId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Удаляем сообщение из DOM
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.remove();
+                    }
+                    alert('Сообщение успешно удалено');
+                } else {
+                    alert('Ошибка при удалении сообщения: ' + (data.detail || 'Неизвестная ошибка'));
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении сообщения:', error);
+                alert('Произошла ошибка при удалении сообщения');
+            });
+        }
+    }
+</script>
+{% endblock %} 

@@ -278,4 +278,234 @@ class AdminUserToggleStatusAPI(AdminRequiredMixin, View):
             return JsonResponse({
                 'status': 'error',
                 'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+
+@method_decorator(check_auth_tokens, name='dispatch')
+class AdminInterestAPI(AdminRequiredMixin, View):
+    """API для управления интересами"""
+    
+    def get(self, request):
+        """Получение списка всех интересов"""
+        try:
+            interests = Interest.objects.all().order_by('name')
+            interests_data = []
+            
+            for interest in interests:
+                interest_data = {
+                    'id': interest.id,
+                    'name': interest.name,
+                    'description': interest.description,
+                    'icon': interest.icon.url if interest.icon else None
+                }
+                interests_data.append(interest_data)
+            
+            return JsonResponse(interests_data, safe=False)
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка интересов: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+    
+    def post(self, request):
+        """Создание нового интереса"""
+        try:
+            name = request.POST.get('name')
+            description = request.POST.get('description', '')
+            icon = request.FILES.get('icon')
+            
+            # Проверка наличия обязательных полей
+            if not name:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Название интереса обязательно'
+                }, status=400)
+            
+            # Проверка уникальности имени
+            if Interest.objects.filter(name=name).exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Интерес с таким названием уже существует'
+                }, status=400)
+            
+            # Создание нового интереса
+            interest = Interest(
+                name=name,
+                description=description
+            )
+            
+            if icon:
+                interest.icon = icon
+                
+            interest.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Интерес успешно создан',
+                'interest': {
+                    'id': interest.id,
+                    'name': interest.name,
+                    'description': interest.description,
+                    'icon': interest.icon.url if interest.icon else None
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при создании интереса: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+
+@method_decorator(check_auth_tokens, name='dispatch')
+class AdminInterestDetailAPI(AdminRequiredMixin, View):
+    """API для управления отдельным интересом"""
+    
+    def get(self, request, interest_id):
+        """Получение данных интереса по ID"""
+        try:
+            interest = get_object_or_404(Interest, id=interest_id)
+            
+            interest_data = {
+                'id': interest.id,
+                'name': interest.name,
+                'description': interest.description,
+                'icon': interest.icon.url if interest.icon else None
+            }
+            
+            return JsonResponse(interest_data)
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении данных интереса: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+    
+    def put(self, request, interest_id):
+        """Обновление интереса"""
+        try:
+            interest = get_object_or_404(Interest, id=interest_id)
+            
+            # Улучшенное извлечение данных из запроса
+            try:
+                # Пытаемся извлечь данные как JSON
+                if request.content_type and 'application/json' in request.content_type:
+                    data = json.loads(request.body)
+                    name = data.get('name')
+                    description = data.get('description', '')
+                else:
+                    # Форма данных или другой тип
+                    name = request.POST.get('name')
+                    description = request.POST.get('description', '')
+                    
+                # Дополнительная проверка и логирование
+                logger.debug(f"Полученные данные для интереса: name='{name}', description='{description}', content_type={request.content_type}")
+            except Exception as e:
+                logger.error(f"Ошибка при извлечении данных запроса: {e}")
+                name = None
+                description = ''
+            
+            # Проверка наличия обязательных полей
+            if not name or name.strip() == '':
+                logger.warning(f"Попытка обновления интереса без имени: {interest_id}, request_data={request.POST}")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Название интереса обязательно'
+                }, status=400)
+            
+            # Очистка имени от лишних пробелов
+            name = name.strip()
+            
+            # Проверка уникальности имени
+            if Interest.objects.filter(name=name).exclude(id=interest_id).exists():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Интерес с таким названием уже существует'
+                }, status=400)
+            
+            # Обновление данных
+            interest.name = name
+            interest.description = description
+            
+            if 'icon' in request.FILES:
+                interest.icon = request.FILES['icon']
+                
+            interest.save()
+            
+            logger.info(f"Интерес успешно обновлен: id={interest_id}, name='{name}'")
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Интерес успешно обновлен',
+                'interest': {
+                    'id': interest.id,
+                    'name': interest.name,
+                    'description': interest.description,
+                    'icon': interest.icon.url if interest.icon else None
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении интереса: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+    
+    def delete(self, request, interest_id):
+        """Удаление интереса"""
+        try:
+            interest = get_object_or_404(Interest, id=interest_id)
+            
+            # Проверка, связан ли интерес с пользователями
+            users_count = interest.users.count()
+            if users_count > 0:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Невозможно удалить интерес, он используется {users_count} пользователями'
+                }, status=400)
+            
+            # Удаление интереса
+            interest_name = interest.name
+            interest.delete()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Интерес "{interest_name}" успешно удален'
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при удалении интереса: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
+            }, status=500)
+
+@method_decorator(check_auth_tokens, name='dispatch')
+class AdminRolesAPI(AdminRequiredMixin, View):
+    """API для получения списка ролей"""
+    
+    def get(self, request):
+        """Получение списка всех ролей"""
+        try:
+            roles = Role.objects.all().order_by('name')
+            roles_data = []
+            
+            for role in roles:
+                role_data = {
+                    'id': role.id,
+                    'name': role.name,
+                    'description': role.description
+                }
+                roles_data.append(role_data)
+            
+            return JsonResponse(roles_data, safe=False)
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка ролей: {e}")
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Произошла ошибка: {str(e)}'
             }, status=500) 

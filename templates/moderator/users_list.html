@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}Пользователи - Панель модератора - Mess{% endblock %}
+
+{% block extra_css %}
+<style>
+    .moder-dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .moder-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .moder-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+    
+    .moder-subtitle {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 25px 0 15px;
+    }
+    
+    .moder-user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .moder-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    
+    .moder-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .moder-menu-item {
+        padding: 12px 20px;
+        background-color: white;
+        border-radius: 8px;
+        text-decoration: none;
+        color: var(--text-primary);
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s;
+    }
+    
+    .moder-menu-item:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+    }
+    
+    .moder-menu-item.active {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .moder-search-box {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    
+    .moder-search-input {
+        flex-grow: 1;
+        padding: 12px 15px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-family: inherit;
+        transition: border-color 0.2s;
+    }
+    
+    .moder-search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+    
+    .moder-search-btn {
+        padding: 0 20px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .moder-search-btn:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .moder-users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .moder-user-card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .moder-user-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .moder-user-card-header {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .moder-user-avatar-lg {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 32px;
+    }
+    
+    .moder-user-name {
+        font-size: 18px;
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    .moder-user-username {
+        font-size: 14px;
+        color: var(--text-secondary);
+        text-align: center;
+    }
+    
+    .moder-user-card-body {
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .moder-user-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .moder-user-status {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .moder-user-status.active {
+        background-color: #D4EDDA;
+        color: #155724;
+    }
+    
+    .moder-user-status.inactive {
+        background-color: #F8D7DA;
+        color: #721C24;
+    }
+    
+    .moder-user-actions {
+        display: flex;
+        justify-content: center;
+        margin-top: 10px;
+    }
+    
+    .moder-user-btn {
+        padding: 8px 15px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background-color 0.2s;
+    }
+    
+    .moder-user-btn:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 50px 30px;
+        color: var(--text-secondary);
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: var(--shadow-sm);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="moder-dashboard">
+    <div class="moder-header">
+        <h1 class="moder-title">Управление пользователями</h1>
+        <div class="moder-user-info">
+            <span>{{ user.first_name }} {{ user.last_name }}</span>
+            {% if user.avatar %}
+                <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="moder-avatar">
+            {% else %}
+                <div class="moder-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="moder-menu">
+        <a href="{% url 'moder_panel' %}" class="moder-menu-item">
+            <i class="fas fa-home"></i> Главная
+        </a>
+        <a href="{% url 'moder_reports_list' %}" class="moder-menu-item">
+            <i class="fas fa-flag"></i> Жалобы
+        </a>
+        <a href="{% url 'moder_users_list' %}" class="moder-menu-item active">
+            <i class="fas fa-users"></i> Пользователи
+        </a>
+        <a href="{% url 'home' %}" class="moder-menu-item">
+            <i class="fas fa-arrow-left"></i> Вернуться на сайт
+        </a>
+    </div>
+    
+    <form class="moder-search-box" method="get" action="{% url 'moder_users_list' %}">
+        <input type="text" name="search" class="moder-search-input" placeholder="Поиск пользователей..." value="{{ search_query }}">
+        <button type="submit" class="moder-search-btn">
+            <i class="fas fa-search"></i>
+        </button>
+    </form>
+    
+    {% if users %}
+    <div class="moder-users-grid">
+        {% for user_obj in users %}
+        <div class="moder-user-card">
+            <div class="moder-user-card-header">
+                <div class="moder-user-avatar-lg">
+                    {% if user_obj.avatar %}
+                        <img src="{{ user_obj.avatar.url }}" alt="{{ user_obj.username }}" width="80" height="80" style="border-radius: 50%">
+                    {% else %}
+                        {{ user_obj.first_name|slice:":1" }}{{ user_obj.last_name|slice:":1" }}
+                    {% endif %}
+                </div>
+                <div class="moder-user-name">{{ user_obj.first_name }} {{ user_obj.last_name }}</div>
+                <div class="moder-user-username">@{{ user_obj.username }}</div>
+            </div>
+            <div class="moder-user-card-body">
+                <div class="moder-user-meta">
+                    <i class="fas fa-envelope"></i> {{ user_obj.email }}
+                </div>
+                <div class="moder-user-meta">
+                    <i class="fas fa-calendar"></i> Регистрация: {{ user_obj.date_joined|date:"d.m.Y" }}
+                </div>
+                <div class="moder-user-meta">
+                    <span class="moder-user-status {% if user_obj.is_active %}active{% else %}inactive{% endif %}">
+                        {% if user_obj.is_active %}Активен{% else %}Заблокирован{% endif %}
+                    </span>
+                </div>
+                <div class="moder-user-actions">
+                    <a href="{% url 'moder_user_detail' user_id=user_obj.id %}" class="moder-user-btn">
+                        <i class="fas fa-user-cog"></i> Управление
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-users" style="font-size: 48px; margin-bottom: 15px; opacity: 0.3;"></i>
+        <p>Пользователи не найдены.</p>
+        {% if search_query %}
+        <p>Попробуйте изменить поисковый запрос.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
