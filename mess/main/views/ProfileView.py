@@ -15,9 +15,40 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from main.decorators import check_auth_tokens, check_auth_tokens_api
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+class UserListAPI(APIView):
+    """API представление для получения списка пользователей"""
+    
+    @method_decorator(check_auth_tokens_api)
+    def get(self, request):
+        """Получение списка всех пользователей"""
+        try:
+            users = User.objects.filter(is_active=True).exclude(id=request.user.id)
+            
+            # Подготавливаем данные пользователей
+            users_data = []
+            for user in users:
+                users_data.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'avatar': user.avatar.url if user.avatar else None
+                })
+            
+            return Response({'users': users_data}, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка пользователей: {str(e)}")
+            return Response(
+                {"detail": "Ошибка при получении списка пользователей"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ProfileTemplateView(TemplateView):
     """Представление для рендеринга шаблона профиля"""

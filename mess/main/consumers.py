@@ -5,7 +5,7 @@ from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from datetime import datetime
 import traceback
-from .models import ChatMessage
+from .models import ChatMessage, GroupChat
 import re
 import asyncio
 
@@ -18,225 +18,213 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
         """
-        Обработка подключения клиента
+        Установка соединения
         """
-        self.user = self.scope["user"]
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{self.room_name}"
+        self.room_name = self.scope['url_route']['kwargs']['room_name']
+        self.room_group_name = f'chat_{self.room_name}'
         
-        # Проверка аутентификации
-        if isinstance(self.user, AnonymousUser):
-            logger.warning(f"Отклонено неаутентифицированное подключение к комнате {self.room_name}")
-            await self.close(code=4001)  # Отказ в подключении
-            return
+        # Проверяем, является ли это групповым чатом
+        is_group_chat = self.room_name.startswith('group_')
         
-        logger.info(f"Пользователь {self.user.username} подключается к комнате {self.room_name}")
+        if is_group_chat:
+            # Для групповых чатов проверяем, является ли пользователь участником
+            try:
+                chat_id = int(self.room_name.split('_')[1])
+                group_chat = await database_sync_to_async(GroupChat.objects.get)(id=chat_id)
+                
+                # Правильно проверяем членство в групповом чате
+                is_member = await self.check_group_chat_membership(group_chat, self.scope['user'].id)
+                
+                if not is_member:
+                    logger.warning(f"Пользователь {self.scope['user'].username} не является участником группового чата {chat_id}")
+                    await self.close()
+                    return
+            except (GroupChat.DoesNotExist, ValueError, IndexError) as e:
+                logger.error(f"Ошибка при проверке группового чата: {str(e)}")
+                await self.close()
+                return
+        else:
+            # Для личных чатов проверяем, является ли пользователь участником
+            try:
+                user_ids = [int(id) for id in self.room_name.split('_')[1:]]
+                if self.scope['user'].id not in user_ids:
+                    logger.warning(f"Пользователь {self.scope['user'].username} не является участником личного чата {self.room_name}")
+                    await self.close()
+                    return
+            except (ValueError, IndexError) as e:
+                logger.error(f"Ошибка при проверке личного чата: {str(e)}")
+                await self.close()
+                return
         
-        # Добавление пользователя в группу комнаты
+        # Присоединяемся к группе комнаты
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         
-        # Принять соединение
         await self.accept()
         
-        # Отправить уведомление о входе пользователя в комнату
+        # Отправляем уведомление о подключении
         await self.channel_layer.group_send(
             self.room_group_name,
             {
-                "type": "chat_message",
-                "message": f"{self.user.username} присоединился к чату",
-                "sender": "system",
-                "timestamp": datetime.now().isoformat()
+                'type': 'chat_message',
+                'message': f"{self.scope['user'].username} присоединился к чату",
+                'user': {
+                    'id': self.scope['user'].id,
+                    'username': self.scope['user'].username,
+                    'first_name': self.scope['user'].first_name,
+                    'last_name': self.scope['user'].last_name
+                },
+                'is_system': True
             }
         )
     
     async def disconnect(self, close_code):
         """
-        Обработка отключения клиента
+        Закрытие соединения
         """
-        if hasattr(self, 'room_group_name') and hasattr(self, 'channel_name'):
-            # Удаление пользователя из группы комнаты
-            await self.channel_layer.group_discard(
-                self.room_group_name,
-                self.channel_name
-            )
-            
-            if not isinstance(self.user, AnonymousUser):
-                # Отправка уведомления о выходе пользователя
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "chat_message",
-                        "message": f"{self.user.username} покинул чат",
-                        "sender": "system",
-                        "timestamp": datetime.now().isoformat()
-                    }
-                )
-                
-            logger.info(f"Пользователь отключился от комнаты {self.room_name}, код: {close_code}")
+        # Отправляем уведомление об отключении
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': f"{self.scope['user'].username} покинул чат",
+                'user': {
+                    'id': self.scope['user'].id,
+                    'username': self.scope['user'].username,
+                    'first_name': self.scope['user'].first_name,
+                    'last_name': self.scope['user'].last_name
+                },
+                'is_system': True
+            }
+        )
+        
+        # Удаляем из группы комнаты
+        await self.channel_layer.group_discard(
+            self.room_group_name,
+            self.channel_name
+        )
     
     async def receive(self, text_data):
         """
-        Получение сообщения от клиента
+        Получение сообщения
         """
         try:
+            # Логируем все входящие данные для отладки
+            logger.info(f"WebSocket получен: {text_data[:100]}")
+            
             text_data_json = json.loads(text_data)
-            message_type = text_data_json.get("type", "message")
             
-            # Обработка индикатора набора текста
-            if message_type == "typing":
-                is_typing = text_data_json.get("is_typing", False)
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "typing_status",
-                        "user_id": self.user.id,
-                        "username": f"{self.user.first_name} {self.user.last_name}",
-                        "is_typing": is_typing
-                    }
-                )
-                return
+            # Получаем тип сообщения, по умолчанию 'message'
+            message_type = text_data_json.get('type', 'message')
+            
+            # Обрабатываем разные типы сообщений
+            if message_type == 'message' and 'message' in text_data_json:
+                # Обычное текстовое сообщение
+                await self.handle_chat_message(text_data_json['message'])
+            elif message_type == 'typing':
+                # Сигнал о наборе текста
+                await self.handle_typing(text_data_json.get('is_typing', False))
+            else:
+                # Неизвестный тип сообщения, или отсутствует ключ 'message'
+                logger.warning(f"Получено сообщение неизвестного типа или без контента: {text_data_json}")
                 
-            # Обработка редактирования сообщения
-            elif message_type == "edit_message":
-                message_id = text_data_json.get("message_id")
-                message = text_data_json.get("message", "")
-                
-                if not message.strip() or not message_id:
-                    return
-                    
-                # Проверка, является ли пользователь автором сообщения
-                is_author = await self.check_message_author(message_id)
-                if not is_author:
-                    return
-                    
-                # Обновляем сообщение в базе данных
-                edited = await self.update_message(message_id, message)
-                
-                # Отправляем обновление всем в группе
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "edit_message",
-                        "message_id": message_id,
-                        "message": message,
-                        "edited": edited,
-                        "sender_id": self.user.id
-                    }
-                )
-                return
-                
-            # Обработка удаления сообщения
-            elif message_type == "delete_message":
-                message_id = text_data_json.get("message_id")
-                
-                if not message_id:
-                    logger.warning("Получен запрос на удаление без ID сообщения")
-                    return
-                
-                logger.info(f"Запрос на удаление сообщения {message_id} от {self.user.username}")
-                
+        except json.JSONDecodeError as e:
+            logger.error(f"Ошибка декодирования JSON: {str(e)}")
+            logger.error(f"Полученные данные: {text_data}")
+        except Exception as e:
+            logger.error(f"Ошибка при обработке сообщения: {str(e)}")
+            logger.error(traceback.format_exc())
+    
+    async def handle_chat_message(self, message):
+        """
+        Обработка обычного текстового сообщения
+        """
+        # Отправляем сообщение в группу немедленно, до сохранения в БД
+        # Это ускорит отображение на фронтенде
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'chat_message',
+                'message': message,
+                'message_id': None,  # ID будет отсутствовать, но это не критично
+                'timestamp': datetime.now().isoformat(),
+                'user': {
+                    'id': self.scope['user'].id,
+                    'username': self.scope['user'].username,
+                    'first_name': self.scope['user'].first_name,
+                    'last_name': self.scope['user'].last_name
+                },
+                'is_system': False
+            }
+        )
+        
+        # Создаем новое сообщение в БД асинхронно
+        asyncio.create_task(self.save_message_to_db(message))
+    
+    async def handle_typing(self, is_typing):
+        """
+        Обработка сигнала о наборе текста
+        """
+        # Отправляем статус набора текста всем в группе
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                'type': 'typing_status',
+                'user_id': self.scope['user'].id,
+                'username': self.scope['user'].username,
+                'is_typing': is_typing
+            }
+        )
+    
+    async def save_message_to_db(self, message):
+        """
+        Сохраняет сообщение в базу данных и отправляет уведомление
+        """
+        try:
+            # Создаем новое сообщение
+            chat_message = await database_sync_to_async(ChatMessage.objects.create)(
+                user=self.scope['user'],
+                message=message,
+                room_name=self.room_name
+            )
+            
+            # Если это групповой чат, связываем сообщение с чатом
+            if self.room_name.startswith('group_'):
                 try:
-                    # Проверяем, существует ли сообщение и является ли пользователь его автором
-                    message = await self.delete_message_if_author(message_id)
-                    
-                    if message:
-                        # Просто отправляем всем событие удаления
-                        await self.channel_layer.group_send(
-                            self.room_group_name,
-                            {
-                                "type": "delete_message",
-                                "message_id": str(message_id),  # Преобразуем в строку для совместимости
-                                "sender_id": self.user.id
-                            }
-                        )
-                        
-                        logger.info(f"Сообщение {message_id} удалено и отправлено уведомление всем в комнате")
-                    else:
-                        logger.warning(f"Сообщение {message_id} не найдено или пользователь не является автором")
+                    chat_id = int(self.room_name.split('_')[1])
+                    group_chat = await database_sync_to_async(GroupChat.objects.get)(id=chat_id)
+                    chat_message.group_chat = group_chat
+                    await database_sync_to_async(chat_message.save)()
                 except Exception as e:
-                    logger.error(f"Ошибка при удалении сообщения: {str(e)}")
-                
-                return
-                
-            # Обработка обычного сообщения
-            message = text_data_json.get("message", "")
+                    logger.error(f"Ошибка при связывании сообщения с групповым чатом: {str(e)}")
             
-            if not message.strip():
-                return
-            
-            logger.info(f"Получено сообщение от {self.user.username} в комнате {self.room_name}")
-            
-            # Сохранение сообщения в базу данных и получение его ID
-            message_id = await self.save_message(message)
-            
-            # Отправка сообщения в группу комнаты
+            # Отправляем уведомление о новом сообщении
             await self.channel_layer.group_send(
-                self.room_group_name,
+                'notifications',
                 {
-                    "type": "chat_message",
-                    "message": message,
-                    "sender": self.user.username,
-                    "sender_id": self.user.id,
-                    "timestamp": datetime.now().isoformat(),
-                    "message_id": message_id
+                    'type': 'notification',
+                    'notification_type': 'new_message',
+                    'room_name': self.room_name,
+                    'message': message,
+                    'user': {
+                        'id': self.scope['user'].id,
+                        'username': self.scope['user'].username
+                    }
                 }
             )
             
-            # Отправляем обновление всем пользователям, у которых открыта личная группа получателя
-            # для обновления счетчика непрочитанных сообщений в реальном времени
-            direct_chat_match = re.match(r'^direct_(\d+)_(\d+)$', self.room_name)
-            if direct_chat_match:
-                user_id1 = int(direct_chat_match.group(1))
-                user_id2 = int(direct_chat_match.group(2))
-                
-                # Определяем получателя
-                recipient_id = user_id1 if self.user.id == user_id2 else user_id2
-                
-                # Отправляем обновление в группу уведомлений получателя
-                await self.channel_layer.group_send(
-                    f"notifications_user_{recipient_id}",
-                    {
-                        "type": "notification_message",
-                        "notification_type": "new_message",
-                        "room_name": self.room_name
-                    }
-                )
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Ошибка декодирования JSON: {str(e)}")
         except Exception as e:
-            logger.error(f"Ошибка обработки сообщения: {str(e)}")
+            logger.error(f"Ошибка при сохранении сообщения в БД: {str(e)}")
             logger.error(traceback.format_exc())
     
     async def chat_message(self, event):
         """
-        Отправка сообщения клиенту
+        Отправка сообщения
         """
-        try:
-            message = event["message"]
-            sender = event.get("sender", "unknown")
-            sender_id = event.get("sender_id", None)
-            timestamp = event.get("timestamp", datetime.now().isoformat())
-            message_id = event.get("message_id", None)
-            
-            # Отправка сообщения клиенту
-            await self.send(text_data=json.dumps({
-                "message": message,
-                "sender": sender,
-                "sender_id": sender_id,
-                "timestamp": timestamp,
-                "message_id": message_id
-            }))
-            
-            logger.info(f"Отправлено сообщение в комнату {self.room_name}")
-            
-        except Exception as e:
-            logger.error(f"Ошибка отправки сообщения: {str(e)}")
-            logger.error(traceback.format_exc())
-    
+        await self.send(text_data=json.dumps(event))
+
     @database_sync_to_async
     def save_message(self, message):
         """
@@ -245,10 +233,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             chat_message = ChatMessage.objects.create(
                 room_name=self.room_name,
-                user=self.user,
+                user=self.scope['user'],
                 message=message
             )
-            logger.info(f"Сообщение от {self.user.username} сохранено в базу данных с ID {chat_message.id}")
+            logger.info(f"Сообщение от {self.scope['user'].username} сохранено в базу данных с ID {chat_message.id}")
             return chat_message.id
         except Exception as e:
             logger.error(f"Ошибка сохранения сообщения: {str(e)}")
@@ -292,7 +280,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             # Просто передаем данные клиенту без лишней обработки
             message_id = event.get('message_id')
             
-            logger.info(f"Отправка клиенту {self.user.username} уведомления об удалении сообщения {message_id}")
+            logger.info(f"Отправка клиенту {self.scope['user'].username} уведомления об удалении сообщения {message_id}")
             
             # Отправляем минимально необходимые данные
             await self.send(text_data=json.dumps({
@@ -314,10 +302,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logger.warning(f"Сообщение с ID {message_id} не найдено при проверке автора")
                 return False
                 
-            is_author = message.user.id == self.user.id
+            is_author = message.user.id == self.scope['user'].id
             
             if not is_author:
-                logger.warning(f"Пользователь {self.user.username} не является автором сообщения {message_id}")
+                logger.warning(f"Пользователь {self.scope['user'].username} не является автором сообщения {message_id}")
                 
             return is_author
         except Exception as e:
@@ -400,8 +388,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 logger.warning(f"Сообщение с ID {message_id} не найдено при удалении")
                 return None
                 
-            if message.user.id != self.user.id:
-                logger.warning(f"Пользователь {self.user.username} не является автором сообщения {message_id}")
+            if message.user.id != self.scope['user'].id:
+                logger.warning(f"Пользователь {self.scope['user'].username} не является автором сообщения {message_id}")
                 return None
                 
             logger.info(f"Удаление сообщения ID={message_id} от пользователя {message.user.username}")
@@ -411,6 +399,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             logger.error(f"Ошибка при удалении сообщения: {str(e)}")
             return None
+
+    @database_sync_to_async
+    def check_group_chat_membership(self, group_chat, user_id):
+        """
+        Проверяет, является ли пользователь участником группового чата
+        """
+        try:
+            return group_chat.members.filter(id=user_id).exists()
+        except Exception as e:
+            logger.error(f"Ошибка при проверке членства в групповом чате: {str(e)}")
+            return False
 
 
 class NotificationsConsumer(AsyncWebsocketConsumer):

@@ -1,0 +1,1042 @@
+{% extends 'base.html' %}
+
+{% block title %}Групповые чаты - Mess{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/chat_rooms.css">
+<style>
+    .group-chat-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+        margin-bottom: 40px;
+    }
+    
+    .group-chat-card {
+        background-color: var(--background-primary);
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: var(--transition-normal);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .group-chat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .group-chat-header {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 15px 20px;
+        font-weight: 600;
+        font-size: 18px;
+        position: relative;
+    }
+    
+    .group-chat-body {
+        padding: 20px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .group-chat-description {
+        color: var(--text-secondary);
+        margin-bottom: 25px;
+        flex-grow: 1;
+        line-height: 1.5;
+    }
+    
+    .group-chat-members {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    
+    .group-chat-member {
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+    
+    .join-button {
+        display: inline-block;
+        background-color: var(--primary-color);
+        color: white;
+        text-decoration: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        text-align: center;
+        transition: var(--transition-normal);
+        margin-top: auto;
+        font-weight: 500;
+    }
+    
+    .join-button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .create-group-chat {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        transition: var(--transition-normal);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .create-group-chat:hover {
+        transform: scale(1.1);
+        background-color: var(--primary-dark);
+    }
+    
+    /* Модальное окно */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+    
+    .modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .modal-title {
+        font-size: 24px;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: var(--text-secondary);
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .members-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 10px;
+    }
+    
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: var(--transition-normal);
+    }
+    
+    .member-item:hover {
+        background-color: var(--primary-light);
+    }
+    
+    .member-item.selected {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .member-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+    
+    .member-name {
+        flex-grow: 1;
+    }
+    
+    .submit-button {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: var(--transition-normal);
+        width: 100%;
+    }
+    
+    .submit-button:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .submit-button:disabled {
+        background-color: var(--border-color);
+        cursor: not-allowed;
+    }
+    
+    .manage-chat-button {
+        position: absolute;
+        right: 15px;
+        top: 15px;
+        color: white;
+        cursor: pointer;
+        font-size: 18px;
+        transition: transform 0.2s;
+    }
+    
+    .manage-chat-button:hover {
+        transform: rotate(30deg);
+    }
+    
+    /* Стили для модального окна управления чатом */
+    .manage-modal-tabs {
+        display: flex;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .manage-tab {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-right: 10px;
+    }
+    
+    .manage-tab.active {
+        border-bottom: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+    
+    .manage-tab-content {
+        display: none;
+    }
+    
+    .manage-tab-content.active {
+        display: block;
+    }
+    
+    .member-action {
+        color: #dc3545;
+        cursor: pointer;
+        margin-left: 10px;
+    }
+    
+    .current-members-list {
+        max-height: 200px;
+        overflow-y: auto;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="user-info">
+        Вы вошли как: 
+        <span>{{ user.username }}</span>
+        {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+        {% else %}
+            <div class="user-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+        {% endif %}
+        <a href="{% url 'home' %}"><i class="fas fa-home"></i> На главную</a>
+    </div>
+    
+    <h1>Групповые чаты</h1>
+    
+    <div id="group-chats-container">
+        {% if group_chats %}
+        <div class="group-chat-list" id="group-chat-list">
+            {% for chat in group_chats %}
+            <div class="group-chat-card">
+                <div class="group-chat-header">
+                    {{ chat.name }}
+                    {% if chat.created_by.id == user.id %}
+                    <span class="manage-chat-button" title="Управление чатом" onclick="openManageChatModal({{ chat.id }}, '{{ chat.name }}', '{{ chat.description }}')">
+                        <i class="fas fa-cog"></i>
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="group-chat-body">
+                    <div class="group-chat-description">
+                        {{ chat.description }}
+                    </div>
+                    <div class="group-chat-members">
+                        {% for member in chat.members.all %}
+                        <span class="group-chat-member">
+                            {{ member.first_name }} {{ member.last_name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <a href="{% url 'chat_room' room_name=chat.get_room_name %}" class="join-button">
+                        Присоединиться
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-chats" id="no-chats">
+            <i class="fas fa-users" style="font-size: 36px; margin-bottom: 15px; color: #4A76A8;"></i>
+            <p>У вас пока нет групповых чатов.</p>
+            <p>Создайте новый чат или присоединитесь к существующему.</p>
+        </div>
+        {% endif %}
+    </div>
+    
+    <a href="{% url 'home' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Вернуться на главную
+    </a>
+    
+    <div class="create-group-chat" id="createGroupChatBtn" title="Создать групповой чат">
+        <i class="fas fa-plus"></i>
+    </div>
+    
+    <!-- Модальное окно для создания группового чата -->
+    <div class="modal" id="createGroupChatModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Создать групповой чат</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <form id="createGroupChatForm">
+                <div class="form-group">
+                    <label for="chatName">Название чата</label>
+                    <input type="text" id="chatName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="chatDescription">Описание</label>
+                    <textarea id="chatDescription" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isPrivate" class="form-control">
+                        <label for="isPrivate">Закрытый чат</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Участники</label>
+                    <div class="members-list" id="membersList">
+                        <!-- Список пользователей будет загружен через JavaScript -->
+                    </div>
+                </div>
+                <button type="submit" class="submit-button" id="createChatBtn">Создать чат</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для управления групповым чатом -->
+    <div class="modal" id="manageChatModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Управление чатом: <span id="manageChatTitle"></span></h2>
+                <button class="close-modal" id="closeManageModal">&times;</button>
+            </div>
+            
+            <div class="manage-modal-tabs">
+                <div class="manage-tab active" data-tab="general">Основное</div>
+                <div class="manage-tab" data-tab="members">Участники</div>
+            </div>
+            
+            <div class="manage-tab-content active" id="generalTab">
+                <form id="manageChatForm">
+                    <input type="hidden" id="manageChatId">
+                    
+                    <div class="form-group">
+                        <label for="manageChatName">Название чата</label>
+                        <input type="text" id="manageChatName" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="manageChatDescription">Описание</label>
+                        <textarea id="manageChatDescription" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="manageIsPrivate" class="form-control">
+                            <label for="manageIsPrivate">Закрытый чат</label>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="submit-button" id="saveChatChangesBtn">Сохранить изменения</button>
+                    <button type="button" class="submit-button delete-button" id="deleteChatBtn">Удалить чат</button>
+                </form>
+            </div>
+            
+            <div class="manage-tab-content" id="membersTab">
+                <h3>Текущие участники</h3>
+                <div class="current-members-list" id="currentMembersList">
+                    <!-- Список текущих участников будет загружен через JavaScript -->
+                </div>
+                
+                <h3>Добавить участников</h3>
+                <div class="members-list" id="manageMembersList">
+                    <!-- Список пользователей будет загружен через JavaScript -->
+                </div>
+                
+                <button class="submit-button" id="addMembersBtn">Добавить выбранных участников</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Функция для загрузки списка пользователей
+    function loadUsers() {
+        fetch('/app/api/users/')
+            .then(response => response.json())
+            .then(data => {
+                const membersList = document.getElementById('membersList');
+                membersList.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'member-item';
+                    memberItem.dataset.userId = user.id;
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'member-avatar';
+                    if (user.avatar) {
+                        avatar.innerHTML = `<img src="${user.avatar}" alt="${user.username}" width="32" height="32" style="border-radius: 50%">`;
+                    } else {
+                        avatar.textContent = `${user.first_name[0]}${user.last_name[0]}`;
+                    }
+                    
+                    const name = document.createElement('div');
+                    name.className = 'member-name';
+                    name.textContent = `${user.first_name} ${user.last_name}`;
+                    
+                    memberItem.appendChild(avatar);
+                    memberItem.appendChild(name);
+                    membersList.appendChild(memberItem);
+                    
+                    // Обработчик выбора пользователя
+                    memberItem.addEventListener('click', function() {
+                        this.classList.toggle('selected');
+                    });
+                });
+            })
+            .catch(error => console.error('Ошибка при загрузке пользователей:', error));
+    }
+    
+    // Функция для создания группового чата
+    function createGroupChat(event) {
+        event.preventDefault();
+        
+        const chatName = document.getElementById('chatName').value;
+        const chatDescription = document.getElementById('chatDescription').value;
+        const isPrivate = document.getElementById('isPrivate').checked;
+        
+        // Получаем выбранных пользователей
+        const selectedMembers = Array.from(document.querySelectorAll('.member-item.selected'))
+            .map(item => item.dataset.userId);
+        
+        // Отправляем запрос на создание чата
+        fetch('/app/api/group-chats/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: chatName,
+                description: chatDescription,
+                is_private: isPrivate,
+                member_ids: selectedMembers
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Закрываем модальное окно
+                document.getElementById('createGroupChatModal').style.display = 'none';
+                
+                // Очищаем форму
+                document.getElementById('createGroupChatForm').reset();
+                
+                // Обновляем список чатов
+                updateGroupChatList();
+            } else {
+                alert('Ошибка при создании чата: ' + data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при создании чата:', error);
+            alert('Произошла ошибка при создании чата');
+        });
+    }
+    
+    // Функция для обновления списка групповых чатов
+    function updateGroupChatList() {
+        fetch('/app/api/group-chats/')
+            .then(response => response.json())
+            .then(data => {
+                const groupChats = data.group_chats;
+                const container = document.getElementById('group-chats-container');
+                
+                if (groupChats && groupChats.length > 0) {
+                    // Скрываем сообщение "нет чатов", если оно видимо
+                    const noChatsElement = document.getElementById('no-chats');
+                    if (noChatsElement) {
+                        noChatsElement.style.display = 'none';
+                    }
+                    
+                    // Создаем/обновляем список чатов
+                    const chatListElement = document.getElementById('group-chat-list');
+                    if (!chatListElement) {
+                        // Если элемента нет, создаем новый
+                        const newChatList = document.createElement('div');
+                        newChatList.className = 'group-chat-list';
+                        newChatList.id = 'group-chat-list';
+                        container.innerHTML = '';
+                        container.appendChild(newChatList);
+                        
+                        // Добавляем чаты
+                        renderGroupChats(newChatList, groupChats);
+                    } else {
+                        // Обновляем существующий список
+                        renderGroupChats(chatListElement, groupChats);
+                    }
+                } else {
+                    // Если чатов нет, показываем сообщение
+                    container.innerHTML = `
+                        <div class="no-chats" id="no-chats">
+                            <i class="fas fa-users" style="font-size: 36px; margin-bottom: 15px; color: #4A76A8;"></i>
+                            <p>У вас пока нет групповых чатов.</p>
+                            <p>Создайте новый чат или присоединитесь к существующему.</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => console.error('Ошибка при получении списка чатов:', error));
+    }
+    
+    // Функция для рендеринга списка групповых чатов
+    function renderGroupChats(container, chats) {
+        // Очищаем контейнер
+        container.innerHTML = '';
+        
+        // Добавляем каждый чат
+        chats.forEach(chat => {
+            const chatCard = document.createElement('div');
+            chatCard.className = 'group-chat-card';
+            
+            // Получаем room_name для групповых чатов
+            const roomName = chat.room_name || `group_${chat.id}`;
+            
+            // Проверяем, является ли текущий пользователь создателем чата
+            const isCreator = chat.created_by && chat.created_by.id === {{user.id}};
+            
+            // Создаем HTML для шапки чата с кнопкой управления для создателя
+            const headerHtml = `
+                <div class="group-chat-header">
+                    ${chat.name}
+                    ${isCreator ? `<span class="manage-chat-button" title="Управление чатом" onclick="openManageChatModal(${chat.id}, '${chat.name.replace(/'/g, "\\'")}', '${(chat.description || '').replace(/'/g, "\\'")}')">
+                        <i class="fas fa-cog"></i>
+                    </span>` : ''}
+                </div>
+            `;
+            
+            chatCard.innerHTML = `
+                ${headerHtml}
+                <div class="group-chat-body">
+                    <div class="group-chat-description">
+                        ${chat.description || ''}
+                    </div>
+                    <div class="group-chat-members">
+                        ${chat.members ? chat.members.map(member => `
+                            <span class="group-chat-member">
+                                ${member.first_name} ${member.last_name}
+                            </span>
+                        `).join('') : ''}
+                    </div>
+                    <a href="/app/chat/${roomName}/" class="join-button">
+                        Присоединиться
+                    </a>
+                </div>
+            `;
+            
+            container.appendChild(chatCard);
+        });
+    }
+    
+    // Функция для получения CSRF-токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Функции для управления чатом
+    let currentChatId = null;
+    
+    function openManageChatModal(chatId, chatName, chatDescription) {
+        currentChatId = chatId;
+        
+        // Заполняем форму текущими данными
+        document.getElementById('manageChatId').value = chatId;
+        document.getElementById('manageChatTitle').textContent = chatName;
+        document.getElementById('manageChatName').value = chatName;
+        document.getElementById('manageChatDescription').value = chatDescription || '';
+        
+        // Загружаем текущие настройки чата
+        loadChatDetails(chatId);
+        
+        // Загружаем участников
+        loadChatMembers(chatId);
+        
+        // Отображаем модальное окно
+        document.getElementById('manageChatModal').style.display = 'block';
+        
+        // Активируем первую вкладку
+        document.querySelector('.manage-tab[data-tab="general"]').click();
+    }
+    
+    function loadChatDetails(chatId) {
+        fetch(`/app/api/group-chats/${chatId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('manageIsPrivate').checked = data.is_private;
+            })
+            .catch(error => console.error('Ошибка при загрузке данных чата:', error));
+    }
+    
+    function loadChatMembers(chatId) {
+        // Загружаем текущих участников
+        fetch(`/app/api/group-chats/${chatId}/members/`)
+            .then(response => response.json())
+            .then(data => {
+                renderCurrentMembers(data.members);
+            })
+            .catch(error => console.error('Ошибка при загрузке участников:', error));
+        
+        // Загружаем возможных участников для добавления
+        loadUsers(chatId);
+    }
+    
+    function renderCurrentMembers(members) {
+        const membersList = document.getElementById('currentMembersList');
+        membersList.innerHTML = '';
+        
+        members.forEach(member => {
+            const memberItem = document.createElement('div');
+            memberItem.className = 'member-item';
+            memberItem.dataset.userId = member.id;
+            
+            // Не позволяем удалить создателя (себя)
+            const isCreator = member.is_creator;
+            
+            memberItem.innerHTML = `
+                <div class="member-avatar">
+                    ${member.avatar ? `<img src="${member.avatar}" alt="${member.username}" width="32" height="32" style="border-radius: 50%">` : 
+                    `${member.first_name[0]}${member.last_name[0]}`}
+                </div>
+                <div class="member-name">
+                    ${member.first_name} ${member.last_name}
+                    ${isCreator ? '<span class="creator-badge">Создатель</span>' : ''}
+                </div>
+                ${!isCreator ? `<div class="member-action" onclick="removeMember(${currentChatId}, ${member.id})">
+                    <i class="fas fa-times"></i>
+                </div>` : ''}
+            `;
+            
+            membersList.appendChild(memberItem);
+        });
+    }
+    
+    function loadUsers(chatId) {
+        fetch('/app/api/users/')
+            .then(response => response.json())
+            .then(data => {
+                const membersList = document.getElementById('manageMembersList');
+                membersList.innerHTML = '';
+                
+                // Фильтруем пользователей, которые еще не в чате
+                fetch(`/app/api/group-chats/${chatId}/members/`)
+                    .then(response => response.json())
+                    .then(membersData => {
+                        const currentMemberIds = membersData.members.map(m => m.id);
+                        
+                        // Отображаем только тех, кто не является участником
+                        const eligibleUsers = data.users.filter(user => !currentMemberIds.includes(user.id));
+                        
+                        eligibleUsers.forEach(user => {
+                            const memberItem = document.createElement('div');
+                            memberItem.className = 'member-item';
+                            memberItem.dataset.userId = user.id;
+                            
+                            const avatar = document.createElement('div');
+                            avatar.className = 'member-avatar';
+                            if (user.avatar) {
+                                avatar.innerHTML = `<img src="${user.avatar}" alt="${user.username}" width="32" height="32" style="border-radius: 50%">`;
+                            } else {
+                                avatar.textContent = `${user.first_name[0]}${user.last_name[0]}`;
+                            }
+                            
+                            const name = document.createElement('div');
+                            name.className = 'member-name';
+                            name.textContent = `${user.first_name} ${user.last_name}`;
+                            
+                            memberItem.appendChild(avatar);
+                            memberItem.appendChild(name);
+                            membersList.appendChild(memberItem);
+                            
+                            // Обработчик выбора пользователя
+                            memberItem.addEventListener('click', function() {
+                                this.classList.toggle('selected');
+                            });
+                        });
+                    });
+            })
+            .catch(error => console.error('Ошибка при загрузке пользователей:', error));
+    }
+    
+    function updateChatDetails() {
+        const chatId = document.getElementById('manageChatId').value;
+        const name = document.getElementById('manageChatName').value;
+        const description = document.getElementById('manageChatDescription').value;
+        const isPrivate = document.getElementById('manageIsPrivate').checked;
+        
+        fetch(`/app/api/group-chats/${chatId}/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description,
+                is_private: isPrivate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Информация о чате успешно обновлена');
+                // Обновляем список чатов
+                updateGroupChatList();
+                // Закрываем модальное окно
+                document.getElementById('manageChatModal').style.display = 'none';
+            } else {
+                alert('Ошибка при обновлении информации о чате: ' + data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при обновлении информации о чате:', error);
+            alert('Произошла ошибка при обновлении информации о чате');
+        });
+    }
+    
+    function addMembers() {
+        const chatId = currentChatId;
+        const selectedMembers = Array.from(document.querySelectorAll('#manageMembersList .member-item.selected'))
+            .map(item => parseInt(item.dataset.userId));
+        
+        if (selectedMembers.length === 0) {
+            alert('Выберите пользователей для добавления в чат');
+            return;
+        }
+        
+        fetch(`/app/api/group-chats/${chatId}/members/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                member_ids: selectedMembers
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Участники успешно добавлены');
+                // Обновляем список участников
+                loadChatMembers(chatId);
+            } else {
+                alert('Ошибка при добавлении участников: ' + data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при добавлении участников:', error);
+            alert('Произошла ошибка при добавлении участников');
+        });
+    }
+    
+    function removeMember(chatId, userId) {
+        if (!confirm('Вы уверены, что хотите удалить этого участника из чата?')) {
+            return;
+        }
+        
+        fetch(`/app/api/group-chats/${chatId}/members/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                member_ids: [userId]
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Участник успешно удален');
+                // Обновляем список участников
+                loadChatMembers(chatId);
+            } else {
+                alert('Ошибка при удалении участника: ' + data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при удалении участника:', error);
+            alert('Произошла ошибка при удалении участника');
+        });
+    }
+    
+    function deleteChat() {
+        const chatId = currentChatId;
+        
+        if (!confirm('Вы уверены, что хотите удалить этот чат? Это действие нельзя отменить.')) {
+            return;
+        }
+        
+        fetch(`/app/api/group-chats/${chatId}/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Чат успешно удален');
+                // Обновляем список чатов
+                updateGroupChatList();
+                // Закрываем модальное окно
+                document.getElementById('manageChatModal').style.display = 'none';
+            } else {
+                alert('Ошибка при удалении чата: ' + data.detail);
+            }
+        })
+        .catch(error => {
+            console.error('Ошибка при удалении чата:', error);
+            alert('Произошла ошибка при удалении чата');
+        });
+    }
+    
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM загружен, инициализация...');
+        
+        // Кнопка открытия модального окна
+        const createGroupChatBtn = document.getElementById('createGroupChatBtn');
+        console.log('Кнопка создания чата:', createGroupChatBtn);
+        
+        if (createGroupChatBtn) {
+            createGroupChatBtn.addEventListener('click', function() {
+                console.log('Нажата кнопка создания чата');
+                document.getElementById('createGroupChatModal').style.display = 'block';
+                loadUsers();
+            });
+        } else {
+            console.error('Не найдена кнопка создания чата!');
+        }
+        
+        // Кнопка закрытия модального окна
+        const closeModalBtn = document.getElementById('closeModal');
+        closeModalBtn.addEventListener('click', function() {
+            document.getElementById('createGroupChatModal').style.display = 'none';
+        });
+        
+        // Закрытие модального окна при клике вне его
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('createGroupChatModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Обработка отправки формы
+        const createGroupChatForm = document.getElementById('createGroupChatForm');
+        createGroupChatForm.addEventListener('submit', createGroupChat);
+        
+        // Первое обновление списка чатов
+        updateGroupChatList();
+        
+        // Обработчики для модального окна управления чатом
+        const closeManageModalBtn = document.getElementById('closeManageModal');
+        closeManageModalBtn.addEventListener('click', function() {
+            document.getElementById('manageChatModal').style.display = 'none';
+        });
+        
+        // Переключение вкладок
+        const manageTabs = document.querySelectorAll('.manage-tab');
+        manageTabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Удаляем активный класс у всех вкладок
+                manageTabs.forEach(t => t.classList.remove('active'));
+                // Добавляем активный класс текущей вкладке
+                this.classList.add('active');
+                
+                // Скрываем все содержимое вкладок
+                const tabContents = document.querySelectorAll('.manage-tab-content');
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Показываем содержимое выбранной вкладки
+                const tabName = this.getAttribute('data-tab');
+                document.getElementById(`${tabName}Tab`).classList.add('active');
+            });
+        });
+        
+        // Обработчик формы обновления чата
+        const manageChatForm = document.getElementById('manageChatForm');
+        manageChatForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            updateChatDetails();
+        });
+        
+        // Обработчик добавления участников
+        const addMembersBtn = document.getElementById('addMembersBtn');
+        addMembersBtn.addEventListener('click', addMembers);
+        
+        // Обработчик удаления чата
+        const deleteChatBtn = document.getElementById('deleteChatBtn');
+        deleteChatBtn.addEventListener('click', function(event) {
+            event.preventDefault();
+            deleteChat();
+        });
+    });
+</script>
+
+<style>
+    /* Дополнительные стили для управления чатом */
+    .creator-badge {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-left: 5px;
+    }
+    
+    .delete-button {
+        background-color: #dc3545;
+        margin-top: 10px;
+    }
+    
+    .delete-button:hover {
+        background-color: #c82333;
+    }
+    
+    /* Дополнительные стили для кнопки создания группового чата */
+    .create-group-chat {
+        position: fixed !important;
+        right: 20px !important;
+        bottom: 20px !important;
+        width: 50px !important;
+        height: 50px !important;
+        border-radius: 50% !important;
+        background-color: #4A76A8 !important;
+        color: white !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 24px !important;
+        cursor: pointer !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
+        z-index: 100 !important;
+    }
+    
+    .create-group-chat:hover {
+        transform: scale(1.1) !important;
+        background-color: #3d6493 !important;
+    }
+</style>
+{% endblock %} 

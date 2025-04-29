@@ -87,7 +87,30 @@ def check_auth_tokens(view_func):
 # Декоратор для API-представлений (с возвратом JSON)
 def check_auth_tokens_api(view_func):
     @wraps(view_func)
-    def _wrapped_view(self, request, *args, **kwargs):
+    def _wrapped_view(*args, **kwargs):
+        # Определяем request из аргументов или kwargs
+        if len(args) > 0 and hasattr(args[0], 'COOKIES') and hasattr(args[0], 'headers'):
+            # Случай, когда первый аргумент уже является объектом Request
+            request = args[0]
+            logger.info("check_auth_tokens_api: Первый аргумент уже является Request")
+        elif len(args) > 1:
+            # Обычный случай для методов класса: (self, request, ...)
+            request = args[1]
+        elif 'request' in kwargs:
+            # Случай когда request передается через kwargs
+            request = kwargs['request']
+        elif len(args) > 0 and hasattr(args[0], 'request'):
+            # Случай для APIView, где request доступен как self.request
+            request = args[0].request
+        else:
+            # Если не удалось получить request, возвращаем ошибку
+            logger.error("check_auth_tokens_api: Не удалось получить объект request")
+            logger.error(f"args: {args}, kwargs: {kwargs}")
+            return Response(
+                {"detail": "Ошибка сервера: не удалось получить объект запроса"}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        
         logger.info("check_auth_tokens_api: Проверка токенов для API")
         access_token = request.COOKIES.get('access_token')
         refresh_token = request.COOKIES.get('refresh_token')
@@ -110,7 +133,7 @@ def check_auth_tokens_api(view_func):
                 logger.info(f"check_auth_tokens_api: Использован токен из заголовка для пользователя {user_id}")
                 
                 # Запишем токен в куки для дальнейшего использования
-                response = view_func(self, request, *args, **kwargs)
+                response = view_func(*args, **kwargs)
                 if not access_token:
                     logger.info("check_auth_tokens_api: Добавляем токен из заголовка в куки")
                     response.set_cookie('access_token', token_from_header, httponly=True, samesite='Lax', max_age=86400)
@@ -144,7 +167,7 @@ def check_auth_tokens_api(view_func):
                 
                 logger.info(f"check_auth_tokens_api: Создан новый access token для пользователя {user_id}")
                 
-                response = view_func(self, request, *args, **kwargs)
+                response = view_func(*args, **kwargs)
                 response.set_cookie('access_token', access_token, httponly=True, samesite='Lax', max_age=86400)  # 1 день
                 return response
             except (TokenError, InvalidToken) as refresh_error:
@@ -161,7 +184,7 @@ def check_auth_tokens_api(view_func):
             User = get_user_model()
             request.user = User.objects.get(id=user_id)
             logger.info(f"check_auth_tokens_api: Использован существующий access token для пользователя {user_id}")
-            return view_func(self, request, *args, **kwargs)
+            return view_func(*args, **kwargs)
             
         except (TokenError, InvalidToken) as e:
             logger.debug(f"check_auth_tokens_api: Access токен невалиден или устарел: {str(e)}")
@@ -177,7 +200,7 @@ def check_auth_tokens_api(view_func):
                 
                 logger.info(f"check_auth_tokens_api: Обновлен access token для пользователя {user_id}")
                 
-                response = view_func(self, request, *args, **kwargs)
+                response = view_func(*args, **kwargs)
                 response.set_cookie('access_token', new_access_token, httponly=True, samesite='Lax', max_age=86400)  # 1 день
                 return response
                 

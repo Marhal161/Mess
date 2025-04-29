@@ -24,6 +24,57 @@
     .direct-chat-card {
         position: relative;
     }
+    
+    .create-chat-buttons {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .create-group-chat, .create-direct-chat {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        cursor: pointer;
+        transition: var(--transition-normal);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+    
+    .create-group-chat:hover, .create-direct-chat:hover {
+        transform: scale(1.1);
+        background-color: var(--primary-dark);
+    }
+    
+    .button-tooltip {
+        position: absolute;
+        right: 60px;
+        background-color: var(--background-primary);
+        color: var(--text-primary);
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 14px;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .create-group-chat:hover .button-tooltip,
+    .create-direct-chat:hover .button-tooltip {
+        opacity: 1;
+    }
 </style>
 {% endblock %}
 
@@ -92,6 +143,17 @@
     <a href="{% url 'home' %}" class="back-link">
         <i class="fas fa-arrow-left"></i> Вернуться на главную
     </a>
+    
+    <div class="create-chat-buttons">
+        <a href="/app/group-chats/" class="create-group-chat" title="Групповые чаты">
+            <i class="fas fa-users"></i>
+            <span class="button-tooltip">Групповые чаты</span>
+        </a>
+        <a href="/app" class="create-direct-chat" title="Личные сообщения">
+            <i class="fas fa-comment"></i>
+            <span class="button-tooltip">Личные сообщения</span>
+        </a>
+    </div>
 </div>
 {% endblock %}
 

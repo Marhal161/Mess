@@ -1,0 +1,672 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ chat_name }} - Mess{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/chat_rooms.css">
+<style>
+    .chat-header {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 12px 12px 0 0;
+    }
+    
+    .chat-title {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+    
+    .chat-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 18px;
+    }
+    
+    .chat-name {
+        font-weight: 600;
+        font-size: 18px;
+    }
+    
+    .chat-meta {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .chat-members {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+    }
+    
+    .chat-members i {
+        color: white;
+    }
+    
+    .chat-privacy {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .chat-privacy i {
+        color: white;
+    }
+    
+    .chat-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .chat-action-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 5px;
+        border-radius: 50%;
+        transition: var(--transition-normal);
+    }
+    
+    .chat-action-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .members-modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
+    
+    .members-modal-content {
+        background-color: var(--background-primary);
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        margin: 50px auto;
+        padding: 20px;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .members-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .members-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .member-item {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        padding: 10px;
+        border-radius: 8px;
+        transition: var(--transition-normal);
+    }
+    
+    .member-item:hover {
+        background-color: var(--background-secondary);
+    }
+    
+    .member-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .member-info {
+        flex-grow: 1;
+    }
+    
+    .member-name {
+        font-weight: 600;
+    }
+    
+    .member-username {
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .member-role {
+        font-size: 14px;
+        color: var(--primary-color);
+    }
+    
+    .message-group {
+        margin-bottom: 20px;
+    }
+    
+    .message-group-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .message-group-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .message-group-name {
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    .message-group-time {
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+    
+    .message-group-content {
+        margin-left: 40px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="user-info">
+        Вы вошли как: 
+        <span>{{ user.username }}</span>
+        {% if user.avatar %}
+            <img src="{{ user.avatar.url }}" alt="{{ user.username }}" class="user-avatar">
+        {% else %}
+            <div class="user-avatar">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</div>
+        {% endif %}
+        <a href="{% url 'home' %}"><i class="fas fa-home"></i> На главную</a>
+    </div>
+    
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="chat-title">
+                {% if chat_avatar %}
+                    <img src="{{ chat_avatar.url }}" alt="{{ chat_name }}" class="chat-avatar">
+                {% else %}
+                    <div class="chat-avatar">{{ chat_name|slice:":2"|upper }}</div>
+                {% endif %}
+                <div class="chat-name">{{ chat_name }}</div>
+            </div>
+            <div class="chat-meta">
+                {% if is_group_chat %}
+                <div class="chat-members" id="show-members">
+                    <i class="fas fa-users"></i>
+                    <span>{{ members_count }}</span>
+                </div>
+                <div class="chat-privacy">
+                    {% if is_private %}
+                        <i class="fas fa-lock"></i>
+                        <span>Приватный</span>
+                    {% else %}
+                        <i class="fas fa-globe"></i>
+                        <span>Публичный</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="chat-actions">
+                    {% if is_group_chat and is_admin %}
+                    <button class="chat-action-btn" id="edit-chat" title="Редактировать чат">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    {% endif %}
+                    <button class="chat-action-btn" id="leave-chat" title="Покинуть чат">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <!-- Сообщения будут загружены через JavaScript -->
+        </div>
+        
+        <div class="chat-input">
+            <form id="chat-message-form">
+                <input type="text" id="chat-message-input" placeholder="Введите сообщение...">
+                <button type="submit" id="send-message">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <a href="{% url 'home' %}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Вернуться на главную
+    </a>
+</div>
+
+<!-- Модальное окно участников -->
+<div class="members-modal" id="members-modal">
+    <div class="members-modal-content">
+        <div class="members-modal-header">
+            <h2>Участники чата</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="members-list" id="members-list">
+            <!-- Участники будут загружены через JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования чата -->
+<div class="modal" id="edit-chat-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Редактировать чат</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-chat-form">
+                <div class="form-group">
+                    <label for="edit-chat-name">Название чата</label>
+                    <input type="text" id="edit-chat-name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-chat-description">Описание</label>
+                    <textarea id="edit-chat-description" name="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="edit-chat-private" name="is_private">
+                        Приватный чат
+                    </label>
+                </div>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Функция для форматирования времени
+    function formatTime(isoTime) {
+        if (!isoTime) return '';
+        const date = new Date(isoTime);
+        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Функция для форматирования даты
+    function formatDate(isoTime) {
+        if (!isoTime) return '';
+        const date = new Date(isoTime);
+        return date.toLocaleDateString('ru-RU', { 
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+    
+    // Создаем WebSocket соединение
+    let chatSocket = null;
+    let isConnected = false;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let reconnectTimeout;
+    
+    function setupWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${roomName}/`;
+        chatSocket = new WebSocket(wsUrl);
+        
+        chatSocket.onopen = function() {
+            console.log('WebSocket connection established');
+            isConnected = true;
+            reconnectAttempts = 0;
+        };
+        
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            if (data.type === 'chat_message') {
+                appendMessage(data);
+            } else if (data.type === 'user_joined') {
+                appendSystemMessage(`${data.username} присоединился к чату`);
+            } else if (data.type === 'user_left') {
+                appendSystemMessage(`${data.username} покинул чат`);
+            } else if (data.type === 'chat_updated') {
+                updateChatInfo(data);
+            }
+        };
+        
+        chatSocket.onclose = function(e) {
+            console.error('WebSocket closed unexpectedly');
+            isConnected = false;
+            
+            // Пытаемся переподключиться, если страница активна
+            if (!document.hidden && reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                console.log(`Попытка переподключения (${reconnectAttempts}/${maxReconnectAttempts})...`);
+                
+                reconnectTimeout = setTimeout(() => {
+                    setupWebSocket();
+                }, 3000);
+            }
+        };
+        
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+        };
+    }
+    
+    // Функция для добавления сообщения в чат
+    function appendMessage(data) {
+        const messagesContainer = document.getElementById('chat-messages');
+        const messageGroup = document.createElement('div');
+        messageGroup.className = 'message-group';
+        
+        const messageGroupHeader = document.createElement('div');
+        messageGroupHeader.className = 'message-group-header';
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-group-avatar';
+        if (data.avatar) {
+            avatar.innerHTML = `<img src="${data.avatar}" alt="${data.username}">`;
+        } else {
+            avatar.textContent = data.username.substring(0, 2).toUpperCase();
+        }
+        
+        const name = document.createElement('div');
+        name.className = 'message-group-name';
+        name.textContent = data.username;
+        
+        const time = document.createElement('div');
+        time.className = 'message-group-time';
+        time.textContent = formatTime(data.timestamp);
+        
+        messageGroupHeader.appendChild(avatar);
+        messageGroupHeader.appendChild(name);
+        messageGroupHeader.appendChild(time);
+        
+        const messageGroupContent = document.createElement('div');
+        messageGroupContent.className = 'message-group-content';
+        messageGroupContent.textContent = data.message;
+        
+        messageGroup.appendChild(messageGroupHeader);
+        messageGroup.appendChild(messageGroupContent);
+        
+        messagesContainer.appendChild(messageGroup);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Функция для добавления системного сообщения
+    function appendSystemMessage(message) {
+        const messagesContainer = document.getElementById('chat-messages');
+        const systemMessage = document.createElement('div');
+        systemMessage.className = 'system-message';
+        systemMessage.textContent = message;
+        messagesContainer.appendChild(systemMessage);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Функция для обновления информации о чате
+    function updateChatInfo(data) {
+        if (data.name) {
+            document.querySelector('.chat-name').textContent = data.name;
+        }
+        if (data.description) {
+            // Обновляем описание, если оно отображается
+        }
+        if (data.is_private !== undefined) {
+            const privacyElement = document.querySelector('.chat-privacy');
+            privacyElement.innerHTML = `
+                <i class="fas fa-${data.is_private ? 'lock' : 'globe'}"></i>
+                <span>${data.is_private ? 'Приватный' : 'Публичный'}</span>
+            `;
+        }
+    }
+    
+    // Обработка отправки сообщения
+    document.getElementById('chat-message-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const messageInput = document.getElementById('chat-message-input');
+        const message = messageInput.value.trim();
+        
+        if (message && chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInput.value = '';
+        }
+    });
+    
+    // Обработка модального окна участников
+    document.addEventListener('DOMContentLoaded', function() {
+        const showMembersBtn = document.getElementById('show-members');
+        const membersModal = document.getElementById('members-modal');
+        const closeMembersModal = membersModal.querySelector('.close-modal');
+        
+        if (showMembersBtn) {
+            showMembersBtn.addEventListener('click', function() {
+                membersModal.style.display = 'block';
+                loadMembers();
+            });
+        }
+        
+        closeMembersModal.addEventListener('click', function() {
+            membersModal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', function(event) {
+            if (event.target === membersModal) {
+                membersModal.style.display = 'none';
+            }
+        });
+    });
+    
+    // Функция для загрузки участников чата
+    function loadMembers() {
+        fetch(`/app/api/group-chats/${roomName}/members/`)
+            .then(response => response.json())
+            .then(data => {
+                const membersList = document.getElementById('members-list');
+                membersList.innerHTML = '';
+                
+                data.members.forEach(member => {
+                    const memberItem = document.createElement('div');
+                    memberItem.className = 'member-item';
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'member-avatar';
+                    if (member.avatar) {
+                        avatar.innerHTML = `<img src="${member.avatar}" alt="${member.username}">`;
+                    } else {
+                        avatar.textContent = member.username.substring(0, 2).toUpperCase();
+                    }
+                    
+                    const info = document.createElement('div');
+                    info.className = 'member-info';
+                    
+                    const name = document.createElement('div');
+                    name.className = 'member-name';
+                    name.textContent = `${member.first_name} ${member.last_name}`;
+                    
+                    const username = document.createElement('div');
+                    username.className = 'member-username';
+                    username.textContent = `@${member.username}`;
+                    
+                    const role = document.createElement('div');
+                    role.className = 'member-role';
+                    role.textContent = member.is_admin ? 'Администратор' : 'Участник';
+                    
+                    info.appendChild(name);
+                    info.appendChild(username);
+                    info.appendChild(role);
+                    
+                    memberItem.appendChild(avatar);
+                    memberItem.appendChild(info);
+                    
+                    membersList.appendChild(memberItem);
+                });
+            })
+            .catch(error => console.error('Ошибка при загрузке участников:', error));
+    }
+    
+    // Обработка модального окна редактирования чата
+    document.addEventListener('DOMContentLoaded', function() {
+        const editChatBtn = document.getElementById('edit-chat');
+        const editChatModal = document.getElementById('edit-chat-modal');
+        const closeEditModal = editChatModal.querySelector('.close-modal');
+        const form = document.getElementById('edit-chat-form');
+        
+        if (editChatBtn) {
+            editChatBtn.addEventListener('click', function() {
+                editChatModal.style.display = 'block';
+                loadChatInfo();
+            });
+        }
+        
+        closeEditModal.addEventListener('click', function() {
+            editChatModal.style.display = 'none';
+        });
+        
+        window.addEventListener('click', function(event) {
+            if (event.target === editChatModal) {
+                editChatModal.style.display = 'none';
+            }
+        });
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description'),
+                is_private: formData.get('is_private') === 'on'
+            };
+            
+            fetch(`/app/api/group-chats/${roomName}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    editChatModal.style.display = 'none';
+                    updateChatInfo(data);
+                } else {
+                    alert('Ошибка при обновлении чата: ' + data.detail);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при обновлении чата:', error);
+                alert('Произошла ошибка при обновлении чата');
+            });
+        });
+    });
+    
+    // Функция для загрузки информации о чате
+    function loadChatInfo() {
+        fetch(`/app/api/group-chats/${roomName}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('edit-chat-name').value = data.name;
+                document.getElementById('edit-chat-description').value = data.description || '';
+                document.getElementById('edit-chat-private').checked = data.is_private;
+            })
+            .catch(error => console.error('Ошибка при загрузке информации о чате:', error));
+    }
+    
+    // Обработка кнопки выхода из чата
+    document.getElementById('leave-chat').addEventListener('click', function() {
+        if (confirm('Вы уверены, что хотите покинуть чат?')) {
+            fetch(`/app/api/group-chats/${roomName}/leave/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = '/app/group-chats/';
+                } else {
+                    alert('Ошибка при выходе из чата: ' + data.detail);
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка при выходе из чата:', error);
+                alert('Произошла ошибка при выходе из чата');
+            });
+        }
+    });
+    
+    // Функция для получения CSRF токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Инициализация WebSocket и загрузка сообщений
+    document.addEventListener('DOMContentLoaded', function() {
+        setupWebSocket();
+        loadMessages();
+        
+        // Обновляем при фокусе на странице
+        window.addEventListener('focus', loadMessages);
+        
+        // Очищаем ресурсы при уходе со страницы
+        window.addEventListener('beforeunload', () => {
+            if (chatSocket && chatSocket.readyState === WebSocket.OPEN) {
+                chatSocket.close();
+            }
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+        });
+    });
+</script>
+{% endblock %} 

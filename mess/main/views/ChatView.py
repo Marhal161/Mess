@@ -2,11 +2,16 @@ from django.shortcuts import render
 from django.views import View
 from ..decorators import check_auth_tokens
 from django.utils.decorators import method_decorator
-from ..models import User, ChatMessage
+from ..models import User, ChatMessage, GroupChat
 from django.db.models import Q, Max, F, Value, CharField
 from django.db.models.functions import Concat
 import logging
 import re
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.views.generic import TemplateView
+from django.urls import reverse
+from django.shortcuts import redirect
 
 logger = logging.getLogger(__name__)
 
@@ -144,4 +149,18 @@ class ChatRoomListView(View):
             'public_rooms': public_rooms,
             'direct_chats': direct_chats,
             'user': request.user
-        }) 
+        })
+
+@method_decorator(check_auth_tokens, name='dispatch')
+class GroupChatListView(LoginRequiredMixin, TemplateView):
+    template_name = 'group_chats.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['group_chats'] = GroupChat.objects.filter(members=self.request.user)
+        return context
+    
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login_page')
+        return super().get(request, *args, **kwargs) 

@@ -1,8 +1,8 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from ..models import ChatMessage, User, ChatReport
-from ..decorators import check_auth_tokens
+from ..models import ChatMessage, User, ChatReport, GroupChat
+from ..decorators import check_auth_tokens, check_auth_tokens_api
 from django.utils.decorators import method_decorator
 import logging
 import re
@@ -10,6 +10,7 @@ from django.db.models import Q, Max, F, Subquery, OuterRef
 from django.db.models.functions import Coalesce
 import traceback
 from django.utils import timezone
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -486,5 +487,414 @@ class ReportChatAPI(APIView):
             logger.error(traceback.format_exc())
             return Response(
                 {"detail": "Произошла ошибка при отправке жалобы"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class GroupChatAPI(APIView):
+    """
+    API для управления групповыми чатами
+    """
+    
+    @method_decorator(check_auth_tokens_api)
+    def get(self, request, *args, **kwargs):
+        """
+        Получение списка групповых чатов пользователя
+        """
+        try:
+            # Получаем все групповые чаты, где пользователь является участником
+            group_chats = GroupChat.objects.filter(
+                members=request.user
+            ).prefetch_related('members', 'messages')
+            
+            # Сериализуем чаты
+            serialized_chats = []
+            for chat in group_chats:
+                last_message = chat.messages.order_by('-timestamp').first()
+                unread_count = chat.messages.exclude(
+                    user=request.user
+                ).exclude(
+                    read_by=request.user
+                ).count()
+                
+                serialized_chats.append({
+                    'id': chat.id,
+                    'name': chat.name,
+                    'description': chat.description,
+                    'is_private': chat.is_private,
+                    'avatar': chat.avatar.url if chat.avatar else None,
+                    'room_name': f"group_{chat.id}",
+                    'created_by': {
+                        'id': chat.created_by.id,
+                        'username': chat.created_by.username,
+                        'first_name': chat.created_by.first_name,
+                        'last_name': chat.created_by.last_name
+                    },
+                    'members_count': chat.members.count(),
+                    'members': [{
+                        'id': member.id,
+                        'username': member.username,
+                        'first_name': member.first_name,
+                        'last_name': member.last_name
+                    } for member in chat.members.all()],
+                    'last_message': last_message.message if last_message else None,
+                    'last_message_time': last_message.timestamp.isoformat() if last_message else None,
+                    'unread_count': unread_count
+                })
+            
+            return Response({
+                'group_chats': serialized_chats
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка групповых чатов: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при получении списка групповых чатов"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @method_decorator(check_auth_tokens_api)
+    def post(self, request):
+        """
+        Создание нового группового чата
+        """
+        try:
+            name = request.data.get('name')
+            description = request.data.get('description', '')
+            is_private = request.data.get('is_private', False)
+            member_ids = request.data.get('member_ids', [])
+            
+            if not name:
+                return Response(
+                    {"detail": "Название чата обязательно"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Создаем новый групповой чат
+            group_chat = GroupChat.objects.create(
+                name=name,
+                description=description,
+                is_private=is_private,
+                created_by=request.user
+            )
+            
+            # Добавляем создателя в участники
+            group_chat.members.add(request.user)
+            
+            # Добавляем остальных участников
+            if member_ids:
+                members = User.objects.filter(id__in=member_ids)
+                group_chat.members.add(*members)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Групповой чат успешно создан',
+                'chat_id': group_chat.id,
+                'room_name': group_chat.get_room_name()
+            })
+            
+        except Exception as e:
+            logger.error(f"Ошибка при создании группового чата: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при создании группового чата"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class GroupChatDetailAPI(APIView):
+    """
+    API для управления конкретным групповым чатом
+    """
+    
+    @method_decorator(check_auth_tokens_api)
+    def get(self, request, chat_id):
+        """
+        Получение информации о групповом чате
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь участником чата
+            if not group_chat.members.filter(id=request.user.id).exists():
+                return Response(
+                    {"detail": "У вас нет доступа к этому чату"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Получаем информацию о чате
+            members = group_chat.members.all()
+            last_message = group_chat.messages.order_by('-timestamp').first()
+            
+            # Формируем ответ
+            members_data = []
+            for member in members:
+                members_data.append({
+                    'id': member.id,
+                    'username': member.username,
+                    'first_name': member.first_name,
+                    'last_name': member.last_name,
+                    'avatar': member.avatar.url if member.avatar else None,
+                    'is_creator': member.id == group_chat.created_by.id
+                })
+            
+            return Response({
+                'id': group_chat.id,
+                'name': group_chat.name,
+                'description': group_chat.description,
+                'is_private': group_chat.is_private,
+                'avatar': group_chat.avatar.url if group_chat.avatar else None,
+                'room_name': f"group_{group_chat.id}",
+                'created_by': {
+                    'id': group_chat.created_by.id,
+                    'username': group_chat.created_by.username,
+                    'first_name': group_chat.created_by.first_name,
+                    'last_name': group_chat.created_by.last_name,
+                },
+                'created_at': group_chat.created_at.isoformat(),
+                'members': members_data,
+                'last_message': last_message.message if last_message else None,
+                'last_message_time': last_message.timestamp.isoformat() if last_message else None
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при получении информации о групповом чате: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при получении информации о чате"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @method_decorator(check_auth_tokens_api)
+    def put(self, request, chat_id):
+        """
+        Обновление информации о групповом чате
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь создателем чата
+            if group_chat.created_by != request.user:
+                return Response(
+                    {"detail": "Только создатель чата может его редактировать"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Обновляем информацию
+            name = request.data.get('name')
+            description = request.data.get('description')
+            is_private = request.data.get('is_private')
+            
+            if name:
+                group_chat.name = name
+            if description is not None:
+                group_chat.description = description
+            if is_private is not None:
+                group_chat.is_private = is_private
+            
+            group_chat.save()
+            
+            return Response({
+                'status': 'success',
+                'message': 'Информация о чате успешно обновлена'
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении информации о групповом чате: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при обновлении информации о чате"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @method_decorator(check_auth_tokens_api)
+    def delete(self, request, chat_id):
+        """
+        Удаление группового чата
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь создателем чата
+            if group_chat.created_by != request.user:
+                return Response(
+                    {"detail": "Только создатель чата может его удалить"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            group_chat.delete()
+            
+            return Response({
+                'status': 'success',
+                'message': 'Чат успешно удален'
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при удалении группового чата: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при удалении чата"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class GroupChatMembersAPI(APIView):
+    """
+    API для управления участниками группового чата
+    """
+    
+    @method_decorator(check_auth_tokens_api)
+    def get(self, request, chat_id):
+        """
+        Получение списка участников группового чата
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь участником чата
+            if not group_chat.members.filter(id=request.user.id).exists():
+                return Response(
+                    {"detail": "У вас нет доступа к этому чату"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Получаем участников чата
+            members = group_chat.members.all()
+            
+            # Формируем ответ
+            members_data = []
+            for member in members:
+                members_data.append({
+                    'id': member.id,
+                    'username': member.username,
+                    'first_name': member.first_name,
+                    'last_name': member.last_name,
+                    'avatar': member.avatar.url if member.avatar else None,
+                    'is_creator': member.id == group_chat.created_by.id
+                })
+            
+            return Response({
+                'members': members_data
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при получении списка участников группового чата: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при получении списка участников"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @method_decorator(check_auth_tokens_api)
+    def post(self, request, chat_id):
+        """
+        Добавление участников в групповой чат
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь создателем чата
+            if group_chat.created_by != request.user:
+                return Response(
+                    {"detail": "Только создатель чата может добавлять участников"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            member_ids = request.data.get('member_ids', [])
+            if not member_ids:
+                return Response(
+                    {"detail": "Необходимо указать ID участников"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Добавляем участников
+            members = User.objects.filter(id__in=member_ids)
+            group_chat.members.add(*members)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Участники успешно добавлены',
+                'added_count': len(member_ids)
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении участников в групповой чат: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при добавлении участников"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @method_decorator(check_auth_tokens_api)
+    def delete(self, request, chat_id):
+        """
+        Удаление участников из группового чата
+        """
+        try:
+            group_chat = GroupChat.objects.get(id=chat_id)
+            
+            # Проверяем, является ли пользователь создателем чата
+            if group_chat.created_by != request.user:
+                return Response(
+                    {"detail": "Только создатель чата может удалять участников"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            data = json.loads(request.body)
+            member_ids = data.get('member_ids', [])
+            
+            if not member_ids:
+                return Response(
+                    {"detail": "Необходимо указать ID участников"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Проверяем, что пользователь не пытается удалить себя (создателя)
+            if request.user.id in member_ids:
+                return Response(
+                    {"detail": "Вы не можете удалить создателя чата"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Удаляем участников
+            members = User.objects.filter(id__in=member_ids)
+            group_chat.members.remove(*members)
+            
+            return Response({
+                'status': 'success',
+                'message': 'Участники успешно удалены',
+                'removed_count': len(member_ids)
+            })
+            
+        except GroupChat.DoesNotExist:
+            return Response(
+                {"detail": "Чат не найден"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except json.JSONDecodeError:
+            return Response(
+                {"detail": "Неверный формат запроса"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при удалении участников из группового чата: {str(e)}")
+            return Response(
+                {"detail": "Произошла ошибка при удалении участников"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             ) 

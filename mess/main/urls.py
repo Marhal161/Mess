@@ -7,9 +7,13 @@ from .views.AuthTemplateView import LoginTemplateView, RegisterTemplateView
 from .views.RegisterView import RegisterView
 from .views.InterestView import InterestListView
 from .views.HomeView import HomeView
-from .views.ProfileView import ProfileTemplateView, ProfileView, ChangePasswordView
-from .views.ChatView import ChatRoomView, ChatRoomListView
-from .views.ChatApiView import ChatMessagesAPI, UnreadMessagesCountAPI, MarkMessagesAsReadAPI, ChatListAPI, EditMessageAPI, DeleteMessageAPI, ReportChatAPI
+from .views.ProfileView import ProfileTemplateView, ProfileView, ChangePasswordView, UserListAPI
+from .views.ChatView import ChatRoomView, ChatRoomListView, GroupChatListView
+from .views.ChatApiView import (
+    ChatMessagesAPI, ChatListAPI, UnreadMessagesCountAPI,
+    MarkMessagesAsReadAPI, EditMessageAPI, DeleteMessageAPI,
+    ReportChatAPI, GroupChatAPI, GroupChatDetailAPI, GroupChatMembersAPI
+)
 from .views.LikeView import LikeUserView, CheckLikeView, LikesCountView
 from .views.AdminView import (
     AdminPanelView, AdminUserEditView, AdminUserUpdateAPI, AdminUserToggleStatusAPI,
@@ -39,6 +43,7 @@ urlpatterns = [
     path('api/profile/<int:user_id>/', ProfileView.as_view(), name='profile_user_api'),
     path('api/change-password/', ChangePasswordView.as_view(), name='change_password_api'),
     path('api/profile/likes-count/', LikesCountView.as_view(), name='profile-likes-count'),
+    path('api/users/', UserListAPI.as_view(), name='users_list_api'),
     
     # Обновление JWT токена
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -46,6 +51,7 @@ urlpatterns = [
     # Чат
     path('chat/', ChatRoomListView.as_view(), name='chat_rooms'),
     path('chat/<str:room_name>/', ChatRoomView.as_view(), name='chat_room'),
+    path('group-chats/', GroupChatListView.as_view(), name='group_chats'),
     
     # API чата
     path('api/chat/messages/<str:room_name>/', ChatMessagesAPI.as_view(), name='chat_messages_api'),
@@ -55,6 +61,11 @@ urlpatterns = [
     path('api/chat/edit-message/<int:message_id>/', EditMessageAPI.as_view(), name='edit_message_api'),
     path('api/chat/delete-message/<int:message_id>/', DeleteMessageAPI.as_view(), name='delete_message_api'),
     path('api/chat/report/<str:room_name>/', ReportChatAPI.as_view(), name='report_chat_api'),
+    
+    # Group chat APIs
+    path('api/group-chats/', GroupChatAPI.as_view(), name='group_chats_api'),
+    path('api/group-chats/<int:chat_id>/', GroupChatDetailAPI.as_view(), name='group_chat_detail_api'),
+    path('api/group-chats/<int:chat_id>/members/', GroupChatMembersAPI.as_view(), name='group_chat_members_api'),
     
     # Админ-панель
     path('admin-panel/', AdminPanelView.as_view(), name='admin_panel'),

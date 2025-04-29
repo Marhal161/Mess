@@ -57,22 +57,50 @@ class Like(models.Model):
     def __str__(self):
         return f"{self.from_user.username} лайкнул {self.to_user.username}"
 
+class GroupChat(models.Model):
+    """
+    Модель группового чата
+    """
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_group_chats')
+    created_at = models.DateTimeField(auto_now_add=True)
+    members = models.ManyToManyField(User, related_name='group_chats')
+    is_private = models.BooleanField(default=False)
+    avatar = models.ImageField(upload_to='group_chats/avatars/', null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Group Chat: {self.name}"
+    
+    def get_room_name(self):
+        return f"group_{self.id}"
+        
+    def get_display_name(self):
+        return self.name
+
 class ChatMessage(models.Model):
     """
-    Модель для хранения сообщений чата
+    Модель сообщения чата
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='messages')
-    room_name = models.CharField(max_length=100)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    room_name = models.CharField(max_length=100)  # Может быть direct_X_Y или group_X
     read_by = models.ManyToManyField(User, related_name='read_messages', blank=True)
-    edited = models.BooleanField(default=False)  # Флаг, был ли сообщение отредактировано
+    edited = models.BooleanField(default=False)
+    group_chat = models.ForeignKey(GroupChat, on_delete=models.CASCADE, null=True, blank=True, related_name='messages')
     
     class Meta:
         ordering = ['timestamp']
-        
+    
     def __str__(self):
         return f"{self.user.username}: {self.message[:50]}"
+    
+    def is_group_message(self):
+        return self.room_name.startswith('group_')
 
 class ChatReport(models.Model):
     """
