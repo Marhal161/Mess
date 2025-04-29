@@ -51,6 +51,20 @@ class ChatRoomView(View):
             except User.DoesNotExist:
                 logger.warning(f"Пользователь с ID {other_user_id} не найден")
         
+        # Проверяем, является ли это групповым чатом
+        group_chat_match = re.match(r'^group_(\d+)$', room_name)
+        if group_chat_match:
+            group_chat_id = int(group_chat_match.group(1))
+            try:
+                # Получаем групповой чат из базы данных
+                group_chat = GroupChat.objects.get(id=group_chat_id)
+                # Устанавливаем настоящее название чата
+                context['chat_title'] = group_chat.name
+                context['is_group_chat'] = True
+                context['group_chat'] = group_chat
+            except GroupChat.DoesNotExist:
+                logger.warning(f"Групповой чат с ID {group_chat_id} не найден")
+        
         # Получаем последние сообщения из чата (например, 20 последних)
         recent_messages = ChatMessage.objects.filter(room_name=room_name).order_by('-timestamp')[:20]
         
