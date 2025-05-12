@@ -107,74 +107,15 @@ class AdminUserUpdateAPI(AdminRequiredMixin, View):
     
     def post(self, request, user_id):
         try:
-            with transaction.atomic():
-                user = get_object_or_404(User, id=user_id)
-                
-                # Получаем данные из POST запроса
-                first_name = request.POST.get('first_name')
-                last_name = request.POST.get('last_name')
-                email = request.POST.get('email')
-                phone = request.POST.get('phone')
-                bio = request.POST.get('bio')
-                gender = request.POST.get('gender')
-                kurs = request.POST.get('kurs')
-                
-                # Проверка уникальности email
-                if User.objects.filter(email=email).exclude(id=user.id).exists():
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Email уже используется другим пользователем'
-                    }, status=400)
-                
-                # Обновляем основные поля
-                user.first_name = first_name
-                user.last_name = last_name
-                user.email = email
-                user.phone = phone
-                user.bio = bio
-                user.gender = gender
-                user.kurs = kurs
-                
-                # Обрабатываем роли
-                if 'roles' in request.POST:
-                    roles_ids = request.POST.getlist('roles')
-                    # Очищаем текущие роли и добавляем новые
-                    user.role.clear()
-                    roles = Role.objects.filter(id__in=roles_ids)
-                    user.role.add(*roles)
-                    
-                    # Проверяем, есть ли роль Admin, и устанавливаем is_staff соответственно
-                    admin_role = Role.objects.filter(name="Admin").first()
-                    if admin_role and admin_role.id in [int(role_id) for role_id in roles_ids]:
-                        user.is_staff = True
-                    else:
-                        user.is_staff = False
-                
-                # Обрабатываем статус активности
-                is_active = request.POST.get('is_active') == 'on'
-                user.is_active = is_active
-                
-                # Обрабатываем интересы
-                if 'interests' in request.POST:
-                    interests_ids = request.POST.getlist('interests')
-                    # Очищаем текущие интересы и добавляем новые
-                    user.interests.clear()
-                    interests = Interest.objects.filter(id__in=interests_ids)
-                    user.interests.add(*interests)
-                
-                # Сбрасываем пароль, если нужно
-                if 'reset_password' in request.POST and request.POST.get('reset_password') == 'on':
-                    new_password = request.POST.get('new_password')
-                    if new_password:
-                        user.set_password(new_password)
-                
-                user.save()
-                
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'Данные пользователя успешно обновлены',
-                    'redirect': reverse('admin_panel')
-                })
+            user = get_object_or_404(User, id=user_id)
+            
+            # Редактирование профиля пользователя не разрешено
+            logger.warning(f"Администратор {request.user.username} попытался отредактировать профиль пользователя {user.username}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Редактирование профилей пользователей не разрешено',
+                'redirect': reverse('admin_panel')
+            }, status=403)
                 
         except Exception as e:
             logger.error(f"Ошибка при обновлении пользователя: {e}")

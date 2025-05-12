@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Страница не найдена - 404 - Mess{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/variables.css' %}">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+    .error-container {
+        max-width: 600px;
+        margin: 80px auto;
+        text-align: center;
+        padding: 40px 20px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .error-icon {
+        font-size: 80px;
+        color: var(--primary-color);
+        margin-bottom: 20px;
+    }
+    
+    .error-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--text-primary);
+    }
+    
+    .error-message {
+        font-size: 18px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 30px;
+    }
+    
+    .error-code {
+        display: inline-block;
+        padding: 6px 12px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        border-radius: 6px;
+        font-weight: 600;
+        margin-bottom: 30px;
+    }
+    
+    .error-actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .error-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .error-btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+    
+    .error-btn-primary:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .error-btn-outline {
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+    }
+    
+    .error-btn-outline:hover {
+        background-color: var(--border-color);
+    }
+    
+    .error-image {
+        max-width: 250px;
+        margin: 0 auto 30px;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-icon">
+        <i class="fas fa-map-signs"></i>
+    </div>
+    
+    <h1 class="error-title">Страница не найдена</h1>
+    
+    <div class="error-code">Ошибка 404</div>
+    
+    <p class="error-message">
+        Упс! К сожалению, страница, которую вы ищете, не существует или была перемещена.
+        <br>
+        Проверьте правильность введенного URL-адреса или воспользуйтесь одной из ссылок ниже.
+    </p>
+    
+    <div class="error-actions">
+        <a href="javascript:history.back()" class="error-btn error-btn-outline">
+            <i class="fas fa-arrow-left"></i> Вернуться назад
+        </a>
+        <a href="{% url 'home' %}" class="error-btn error-btn-primary">
+            <i class="fas fa-home"></i> На главную
+        </a>
+    </div>
+</div>
+{% endblock %} 

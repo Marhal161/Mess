@@ -154,9 +154,9 @@
             <div class="other-user-info">
                 <div class="other-user-avatar">
                     {% if other_user.avatar %}
-                        <img src="{{ other_user.avatar.url }}" alt="{{ other_user.first_name }}" width="36" height="36" style="border-radius: 50%">
+                        <img src="{{ other_user.avatar.url }}" alt="{{ other_user.first_name }}" width="36" height="36" style="border-radius: 50%; object-fit: cover; width: 100%; height: 100%;">
                     {% else %}
-                        {{ other_user.first_name|slice:":1" }}{{ other_user.last_name|slice:":1" }}
+                        <div class="avatar-placeholder">{{ other_user.first_name|slice:":1" }}{{ other_user.last_name|slice:":1" }}</div>
                     {% endif %}
                 </div>
                 <div>
@@ -378,7 +378,24 @@
                     }
                 }
                 
-                displayMessage(data);
+                console.log("Полные данные полученного сообщения:", data); // Для отладки
+                
+                // Подготавливаем данные для отображения
+                const messageData = {
+                    message: data.message,
+                    sender: data.sender,
+                    sender_id: data.sender_id,
+                    timestamp: data.timestamp,
+                    is_read: false, // новые сообщения всегда непрочитаны
+                    message_id: data.message_id,
+                    first_name: data.first_name || '',
+                    last_name: data.last_name || '',
+                    avatar: data.avatar
+                };
+                
+                console.log("Подготовленные данные для отображения:", messageData); // Для отладки
+                
+                displayMessage(messageData);
                 
                 // Если сообщение не от текущего пользователя, отмечаем его как прочитанное
                 if (data.sender_id !== currentUserId) {
@@ -466,7 +483,10 @@
                         sender_id: msg.user.id,
                         timestamp: msg.timestamp,
                         is_read: msg.is_read,
-                        message_id: msg.id
+                        message_id: msg.id,
+                        avatar: msg.user.avatar,
+                        first_name: msg.user.first_name,
+                        last_name: msg.user.last_name
                     });
                 });
                 
@@ -567,6 +587,8 @@
     
     // Функция отображения сообщения
     function displayMessage(data) {
+        console.log("Отображение сообщения с данными:", data); // Отладка
+        
         const message = data.message;
         const sender = data.sender;
         const senderId = data.sender_id;
@@ -574,6 +596,9 @@
         const isRead = data.is_read || senderId === currentUserId;
         const messageId = data.message_id;
         const isEdited = data.edited || false;
+        const avatar = data.avatar;
+        const firstName = data.first_name || '';
+        const lastName = data.last_name || '';
         
         const messageDiv = document.createElement('div');
         
@@ -598,7 +623,29 @@
                 messageDiv.className = 'message';
             }
             
-            const avatarText = sender.substring(0, 2).toUpperCase();
+            // Формируем аватар - текст или изображение
+            let avatarHtml = '';
+            console.log("Данные аватара:", avatar, "Имя:", firstName, "Фамилия:", lastName); // Отладка
+            
+            if (avatar) {
+                avatarHtml = `<img src="${avatar}" alt="${sender}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            } else {
+                // Вместо username, который может быть email, используем инициалы или первые две буквы username
+                let initials = '';
+                
+                // Пытаемся получить инициалы из data, если доступны имя и фамилия
+                if (firstName && lastName) {
+                    initials = firstName.charAt(0) + lastName.charAt(0);
+                } else if (firstName) {
+                    initials = firstName.substring(0, 2);
+                } else {
+                    // Если ничего не доступно, берем первые две буквы username
+                    // Избегаем использования специальных символов из email
+                    initials = sender.replace(/@.*$/, '').substring(0, 2);
+                }
+                
+                avatarHtml = `<div class="avatar-placeholder">${initials.toUpperCase()}</div>`;
+            }
             
             // Добавляем кнопки редактирования и удаления только для своих сообщений
             const actionButtons = senderId === currentUserId ? `
@@ -616,7 +663,7 @@
             const editedMark = isEdited ? '<span class="edited-mark">(ред.)</span>' : '';
             
             messageDiv.innerHTML = `
-                <div class="avatar">${avatarText}</div>
+                <div class="avatar">${avatarHtml}</div>
                 <div class="message-content" id="message-content-${messageId}">
                     <div>${message} ${editedMark}</div>
                     <div class="message-meta">
@@ -705,7 +752,10 @@
                                 sender_id: msg.user.id,
                                 timestamp: msg.timestamp,
                                 is_read: msg.is_read,
-                                message_id: msg.id
+                                message_id: msg.id,
+                                avatar: msg.user.avatar,
+                                first_name: msg.user.first_name,
+                                last_name: msg.user.last_name
                             });
                         }
                     });

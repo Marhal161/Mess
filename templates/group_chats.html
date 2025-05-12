@@ -300,6 +300,52 @@
         overflow-y: auto;
         margin-bottom: 20px;
     }
+    
+    .group-chat-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        background-color: var(--primary-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: var(--primary-color);
+        font-size: 20px;
+        margin-right: 15px;
+        overflow: hidden;
+    }
+    
+    .group-chat-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    
+    .group-chat-name {
+        flex-grow: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .group-chat-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 15px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 10px 10px 0 0;
+    }
 </style>
 {% endblock %}
 
@@ -382,18 +428,6 @@
                     <label for="chatDescription">Описание</label>
                     <textarea id="chatDescription" class="form-control" rows="3"></textarea>
                 </div>
-                <div class="form-group">
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="isPrivate" class="form-control">
-                        <label for="isPrivate">Закрытый чат</label>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Участники</label>
-                    <div class="members-list" id="membersList">
-                        <!-- Список пользователей будет загружен через JavaScript -->
-                    </div>
-                </div>
                 <button type="submit" class="submit-button" id="createChatBtn">Создать чат</button>
             </form>
         </div>
@@ -424,13 +458,6 @@
                     <div class="form-group">
                         <label for="manageChatDescription">Описание</label>
                         <textarea id="manageChatDescription" class="form-control" rows="3"></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="manageIsPrivate" class="form-control">
-                            <label for="manageIsPrivate">Закрытый чат</label>
-                        </div>
                     </div>
                     
                     <button type="submit" class="submit-button" id="saveChatChangesBtn">Сохранить изменения</button>
@@ -502,11 +529,6 @@
         
         const chatName = document.getElementById('chatName').value;
         const chatDescription = document.getElementById('chatDescription').value;
-        const isPrivate = document.getElementById('isPrivate').checked;
-        
-        // Получаем выбранных пользователей
-        const selectedMembers = Array.from(document.querySelectorAll('.member-item.selected'))
-            .map(item => item.dataset.userId);
         
         // Отправляем запрос на создание чата
         fetch('/app/api/group-chats/', {
@@ -517,9 +539,7 @@
             },
             body: JSON.stringify({
                 name: chatName,
-                description: chatDescription,
-                is_private: isPrivate,
-                member_ids: selectedMembers
+                description: chatDescription
             })
         })
         .then(response => response.json())
@@ -604,13 +624,24 @@
             // Проверяем, является ли текущий пользователь создателем чата
             const isCreator = chat.created_by && chat.created_by.id === {{user.id}};
             
+            // Генерируем HTML для аватара чата
+            let avatarHtml = '';
+            if (chat.avatar) {
+                avatarHtml = `<img src="${chat.avatar}" alt="${chat.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">`;
+            } else {
+                avatarHtml = `<div class="avatar-placeholder">${chat.name.substring(0, 2).toUpperCase()}</div>`;
+            }
+            
             // Создаем HTML для шапки чата с кнопкой управления для создателя
             const headerHtml = `
                 <div class="group-chat-header">
-                    ${chat.name}
-                    ${isCreator ? `<span class="manage-chat-button" title="Управление чатом" onclick="openManageChatModal(${chat.id}, '${chat.name.replace(/'/g, "\\'")}', '${(chat.description || '').replace(/'/g, "\\'")}')">
-                        <i class="fas fa-cog"></i>
-                    </span>` : ''}
+                    <div class="group-chat-avatar">
+                        ${avatarHtml}
+                    </div>
+                    <div class="group-chat-name">
+                        ${chat.name}
+                        ${isCreator ? `<span class="manage-chat-button" title="Управление чатом" onclick="openManageChatModal(${chat.id}, '${chat.name.replace(/'/g, "\\'")}', '${(chat.description || '').replace(/'/g, "\\'")}')"><i class="fas fa-cog"></i></span>` : ''}
+                    </div>
                 </div>
             `;
             

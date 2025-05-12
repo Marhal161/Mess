@@ -67,7 +67,8 @@ class ChatMessagesAPI(APIView):
                         'id': msg.user.id,
                         'username': msg.user.username,
                         'first_name': msg.user.first_name,
-                        'last_name': msg.user.last_name
+                        'last_name': msg.user.last_name,
+                        'avatar': msg.user.avatar.url if msg.user.avatar else None
                     }
                 })
             

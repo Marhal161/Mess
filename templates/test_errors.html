@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Тестирование страниц ошибок - Mess{% endblock %}
+
+{% block extra_css %}
+<style>
+    .test-container {
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 30px;
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .test-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: var(--primary-color);
+        text-align: center;
+    }
+    
+    .test-description {
+        font-size: 16px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .test-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .test-card {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        text-align: center;
+        transition: all 0.3s;
+        border: 1px solid var(--border-color);
+    }
+    
+    .test-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .test-card-icon {
+        font-size: 40px;
+        margin-bottom: 15px;
+    }
+    
+    .test-card-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
+    
+    .test-card-description {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+    }
+    
+    .test-btn {
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: var(--primary-color);
+        color: white;
+        border-radius: 6px;
+        text-decoration: none;
+        transition: background-color 0.2s;
+    }
+    
+    .test-btn:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .test-note {
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #e2f0fd;
+        border-left: 4px solid #0d6efd;
+        margin-bottom: 20px;
+    }
+    
+    .test-note-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .test-note-title i {
+        color: #0d6efd;
+    }
+    
+    .test-note-text {
+        font-size: 14px;
+        color: var(--text-secondary);
+    }
+    
+    .test-warning {
+        padding: 15px;
+        border-radius: 8px;
+        background-color: #fff3cd;
+        border-left: 4px solid #ffc107;
+    }
+    
+    .test-warning-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: #856404;
+    }
+    
+    .test-warning-title i {
+        color: #ffc107;
+    }
+    
+    .test-warning-text {
+        font-size: 14px;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <h1 class="test-title">Тестирование страниц ошибок</h1>
+    
+    <p class="test-description">
+        На этой странице вы можете протестировать страницы ошибок приложения. 
+        Для корректной работы страниц ошибок необходимо установить <code>DEBUG = False</code> в файле <code>settings.py</code>.
+    </p>
+    
+    <div class="test-note">
+        <div class="test-note-title">
+            <i class="fas fa-info-circle"></i> Примечание
+        </div>
+        <div class="test-note-text">
+            При <code>DEBUG = True</code> вместо пользовательских страниц ошибок Django будет показывать 
+            стандартные страницы отладки с подробной технической информацией.
+        </div>
+    </div>
+    
+    <div class="test-cards">
+        <div class="test-card">
+            <div class="test-card-icon" style="color: #0d6efd;">
+                <i class="fas fa-map-signs"></i>
+            </div>
+            <div class="test-card-title">404 - Страница не найдена</div>
+            <div class="test-card-description">
+                Ошибка возникает, когда запрашиваемая страница не существует.
+            </div>
+            <a href="/test-errors/404/" class="test-btn">Тестировать</a>
+        </div>
+        
+        <div class="test-card">
+            <div class="test-card-icon" style="color: #dc3545;">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <div class="test-card-title">500 - Ошибка сервера</div>
+            <div class="test-card-description">
+                Внутренняя ошибка сервера при обработке запроса.
+            </div>
+            <a href="/test-errors/500/" class="test-btn">Тестировать</a>
+        </div>
+        
+        <div class="test-card">
+            <div class="test-card-icon" style="color: #fd7e14;">
+                <i class="fas fa-lock"></i>
+            </div>
+            <div class="test-card-title">403 - Доступ запрещен</div>
+            <div class="test-card-description">
+                Ошибка возникает при отсутствии прав доступа к ресурсу.
+            </div>
+            <a href="/test-errors/403/" class="test-btn">Тестировать</a>
+        </div>
+    </div>
+    
+    <div class="test-warning">
+        <div class="test-warning-title">
+            <i class="fas fa-exclamation-triangle"></i> Внимание!
+        </div>
+        <div class="test-warning-text">
+            После тестирования рекомендуется вернуть значение <code>DEBUG = True</code> 
+            в файле <code>settings.py</code> для продолжения разработки.
+        </div>
+    </div>
+</div>
+{% endblock %} 

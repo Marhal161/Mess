@@ -219,6 +219,15 @@ class ModerUserAPIView(ModeratorRequiredMixin, View):
         
         if action == 'toggle_active':
             # Блокировка/разблокировка пользователя
+            
+            # Проверяем, не пытается ли модератор заблокировать самого себя
+            if user_obj.id == request.user.id:
+                logger.warning(f"Модератор {request.user.username} попытался заблокировать самого себя")
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Вы не можете заблокировать самого себя'
+                }, status=403)
+            
             user_obj.is_active = not user_obj.is_active
             user_obj.save()
             
@@ -230,22 +239,12 @@ class ModerUserAPIView(ModeratorRequiredMixin, View):
             })
         
         elif action == 'update_profile':
-            # Обновление данных пользователя
-            first_name = data.get('first_name', user_obj.first_name)
-            last_name = data.get('last_name', user_obj.last_name)
-            email = data.get('email', user_obj.email)
-            
-            user_obj.first_name = first_name
-            user_obj.last_name = last_name
-            user_obj.email = email
-            user_obj.save()
-            
-            logger.info(f"Модератор {request.user.username} обновил профиль пользователя {user_obj.username}")
-            
+            # Редактирование профиля пользователя не разрешено
+            logger.warning(f"Модератор {request.user.username} попытался отредактировать профиль пользователя {user_obj.username}")
             return JsonResponse({
-                'status': 'success',
-                'message': 'Профиль пользователя обновлен'
-            })
+                'status': 'error',
+                'message': 'Редактирование профилей пользователей не разрешено'
+            }, status=403)
         
         return JsonResponse({
             'status': 'error',

@@ -23,6 +23,7 @@ from .views.ModerView import (
     ModeratorPanelView, ReportListView, ReportDetailView, 
     ModerUserManagementView, ModerUserAPIView, ModerDeleteMessageAPIView
 )
+from .views.TestErrorsView import TestErrorsView
 from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
@@ -88,7 +89,12 @@ urlpatterns = [
     # API для модераторов
     path('api/moderator/user/<int:user_id>/', ModerUserAPIView.as_view(), name='moder_user_api'),
     path('api/moderator/message/delete/<int:message_id>/', ModerDeleteMessageAPIView.as_view(), name='moder_delete_message_api'),
+    
+    # Тестирование страниц ошибок
+    path('test-errors/', TestErrorsView.as_view(), name='test_errors'),
+    path('test-errors/<str:error_type>/', TestErrorsView.as_view(), name='test_specific_error'),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Обслуживание статических файлов независимо от DEBUG
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

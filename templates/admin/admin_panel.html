@@ -459,9 +459,6 @@
                                                 <button class="admin-btn {% if user.is_moder %}admin-btn-danger{% else %}admin-btn-warning{% endif %} toggle-moder-btn" data-user-id="{{ user.id }}" data-is-moder="{{ user.is_moder|lower }}" title="{% if user.is_moder %}Снять модера{% else %}Сделать модером{% endif %}">
                                                     <i class="fas fa-user-cog"></i>
                                                 </button>
-                                                <button class="admin-btn admin-btn-primary edit-user-btn" data-user-id="{{ user.id }}" title="Редактировать">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>

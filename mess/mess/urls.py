@@ -18,12 +18,21 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.conf.urls import handler404, handler500, handler403
+from main.views.ErrorHandlerView import custom_page_not_found, custom_server_error, custom_permission_denied
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('app/', include('main.urls')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+# Обработчики ошибок
+handler404 = custom_page_not_found
+handler500 = custom_server_error
+handler403 = custom_permission_denied
+
+# Обслуживание статических и медиа-файлов
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Обновленная конфигурация для обслуживания статических файлов, которая будет работать 
+# независимо от значения DEBUG
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT if settings.STATIC_ROOT else settings.STATICFILES_DIRS[0])

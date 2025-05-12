@@ -8,6 +8,7 @@ import traceback
 from .models import ChatMessage, GroupChat
 import re
 import asyncio
+from channels.layers import get_channel_layer
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'id': self.scope['user'].id,
                     'username': self.scope['user'].username,
                     'first_name': self.scope['user'].first_name,
-                    'last_name': self.scope['user'].last_name
+                    'last_name': self.scope['user'].last_name,
+                    'avatar': self.scope['user'].avatar.url if hasattr(self.scope['user'], 'avatar') and self.scope['user'].avatar else None
                 },
                 'is_system': True
             }
@@ -94,7 +96,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'id': self.scope['user'].id,
                     'username': self.scope['user'].username,
                     'first_name': self.scope['user'].first_name,
-                    'last_name': self.scope['user'].last_name
+                    'last_name': self.scope['user'].last_name,
+                    'avatar': self.scope['user'].avatar.url if hasattr(self.scope['user'], 'avatar') and self.scope['user'].avatar else None
                 },
                 'is_system': True
             }
@@ -154,7 +157,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     'id': self.scope['user'].id,
                     'username': self.scope['user'].username,
                     'first_name': self.scope['user'].first_name,
-                    'last_name': self.scope['user'].last_name
+                    'last_name': self.scope['user'].last_name,
+                    'avatar': self.scope['user'].avatar.url if hasattr(self.scope['user'], 'avatar') and self.scope['user'].avatar else None
                 },
                 'is_system': False
             }
@@ -180,50 +184,61 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     async def save_message_to_db(self, message):
         """
-        Сохраняет сообщение в базу данных и отправляет уведомление
+        Асинхронно сохраняем сообщение в БД и отправляем обновленное сообщение
         """
-        try:
-            # Создаем новое сообщение
-            chat_message = await database_sync_to_async(ChatMessage.objects.create)(
-                user=self.scope['user'],
-                message=message,
-                room_name=self.room_name
-            )
-            
-            # Если это групповой чат, связываем сообщение с чатом
-            if self.room_name.startswith('group_'):
-                try:
-                    chat_id = int(self.room_name.split('_')[1])
-                    group_chat = await database_sync_to_async(GroupChat.objects.get)(id=chat_id)
-                    chat_message.group_chat = group_chat
-                    await database_sync_to_async(chat_message.save)()
-                except Exception as e:
-                    logger.error(f"Ошибка при связывании сообщения с групповым чатом: {str(e)}")
-            
-            # Отправляем уведомление о новом сообщении
+        # Сохраняем сообщение в базу данных
+        message_id = await self.save_message(message)
+        
+        # Проверяем, успешно ли сохранено сообщение
+        if message_id:
+            # Если сообщение сохранено успешно, отправляем обновленную информацию с ID сообщения
             await self.channel_layer.group_send(
-                'notifications',
+                self.room_group_name,
                 {
-                    'type': 'notification',
-                    'notification_type': 'new_message',
-                    'room_name': self.room_name,
+                    'type': 'chat_message',
                     'message': message,
+                    'message_id': message_id,
+                    'timestamp': datetime.now().isoformat(),
                     'user': {
                         'id': self.scope['user'].id,
-                        'username': self.scope['user'].username
-                    }
+                        'username': self.scope['user'].username,
+                        'first_name': self.scope['user'].first_name,
+                        'last_name': self.scope['user'].last_name,
+                        'avatar': self.scope['user'].avatar.url if hasattr(self.scope['user'], 'avatar') and self.scope['user'].avatar else None
+                    },
+                    'is_system': False
                 }
             )
-            
-        except Exception as e:
-            logger.error(f"Ошибка при сохранении сообщения в БД: {str(e)}")
-            logger.error(traceback.format_exc())
+        else:
+            logger.error(f"Не удалось сохранить сообщение в БД")
     
     async def chat_message(self, event):
         """
-        Отправка сообщения
+        Отправка сообщения клиенту
         """
-        await self.send(text_data=json.dumps(event))
+        try:
+            # Подготавливаем информацию для отправки клиенту
+            message_data = {
+                'type': 'chat_message',
+                'message': event.get('message', ''),
+                'sender': event.get('user', {}).get('username', ''),
+                'sender_id': event.get('user', {}).get('id', None),
+                'timestamp': event.get('timestamp', datetime.now().isoformat()),
+                'message_id': event.get('message_id', None),
+                'is_system': event.get('is_system', False),
+                'edited': event.get('edited', False),
+                'first_name': event.get('user', {}).get('first_name', ''),
+                'last_name': event.get('user', {}).get('last_name', ''),
+                'avatar': event.get('user', {}).get('avatar', None)
+            }
+            
+            # Логируем информацию об аватаре для отладки
+            logger.info(f"Отправка сообщения с аватаром: {message_data['avatar']}")
+            
+            # Отправляем данные клиенту
+            await self.send(text_data=json.dumps(message_data))
+        except Exception as e:
+            logger.error(f"Ошибка при отправке сообщения клиенту: {str(e)}")
 
     @database_sync_to_async
     def save_message(self, message):
@@ -236,7 +251,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 user=self.scope['user'],
                 message=message
             )
+            
+            # Если это групповой чат, связываем сообщение с чатом
+            if self.room_name.startswith('group_'):
+                try:
+                    chat_id = int(self.room_name.split('_')[1])
+                    group_chat = GroupChat.objects.get(id=chat_id)
+                    chat_message.group_chat = group_chat
+                    chat_message.save()
+                except Exception as e:
+                    logger.error(f"Ошибка при связывании сообщения с групповым чатом: {str(e)}")
+            
             logger.info(f"Сообщение от {self.scope['user'].username} сохранено в базу данных с ID {chat_message.id}")
+            
+            # Отправляем уведомление о новом сообщении в канал уведомлений
+            try:
+                channel_layer = get_channel_layer()
+                asyncio.run_coroutine_threadsafe(
+                    channel_layer.group_send(
+                        'notifications',
+                        {
+                            'type': 'notification',
+                            'notification_type': 'new_message',
+                            'room_name': self.room_name,
+                            'message': message,
+                            'user': {
+                                'id': self.scope['user'].id,
+                                'username': self.scope['user'].username
+                            }
+                        }
+                    ),
+                    asyncio.get_event_loop()
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при отправке уведомления о новом сообщении: {str(e)}")
+            
             return chat_message.id
         except Exception as e:
             logger.error(f"Ошибка сохранения сообщения: {str(e)}")

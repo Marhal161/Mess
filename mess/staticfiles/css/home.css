@@ -1,0 +1,889 @@
+@import 'variables.css';
+
+/* Контейнер для ленты пользователей */
+.user-feed-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+}
+
+.feed-title {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+}
+
+/* Стили для фильтра интересов */
+.interests-filter {
+    background-color: var(--background-primary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.interests-filter:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.filter-title {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.filter-title::before {
+    content: '\f0b0';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    margin-right: 0.75rem;
+    color: var(--primary-color);
+    font-size: 1rem;
+}
+
+.interests-filter-container {
+    position: relative;
+    margin-bottom: 1.25rem;
+    background-color: white;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.selected-interests {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    min-height: 36px;
+    padding: 0.25rem 0;
+}
+
+.selected-interest-tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    border-radius: var(--radius-full);
+    padding: 0.4rem 1rem;
+    font-size: 0.875rem;
+    gap: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid rgba(67, 97, 238, 0.2);
+}
+
+.selected-interest-tag:hover {
+    background-color: rgba(67, 97, 238, 0.2);
+    transform: translateY(-2px);
+}
+
+.remove-interest {
+    border: none;
+    background: none;
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 0.875rem;
+    line-height: 1;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    transition: all 0.2s;
+}
+
+.remove-interest:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.no-interests {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.875rem;
+    padding: 0.5rem 0;
+}
+
+.filter-input-container {
+    display: flex;
+    position: relative;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: all 0.2s;
+}
+
+.filter-input-container:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+}
+
+.interest-filter-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    border: none;
+    font-size: 0.95rem;
+    background-color: white;
+    outline: none;
+}
+
+.interest-dropdown-toggle {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.interest-dropdown-toggle:hover {
+    color: var(--primary-color);
+}
+
+.interests-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 20;
+    animation: fadeInDown 0.2s ease forwards;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-light) transparent;
+}
+
+.interests-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.interests-dropdown::-webkit-scrollbar-thumb {
+    background-color: var(--primary-light);
+    border-radius: 3px;
+}
+
+.interests-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.interests-dropdown.hidden {
+    display: none;
+}
+
+.interest-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+}
+
+.interest-item:last-child {
+    border-bottom: none;
+}
+
+.interest-item::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    margin-right: 0.75rem;
+    display: inline-block;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.interest-item.selected::before {
+    border-color: var(--primary-color);
+    background-color: var(--primary-color);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='16px' height='16px'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 14px;
+}
+
+.interest-item:hover {
+    background-color: rgba(67, 97, 238, 0.05);
+}
+
+.interest-item.selected {
+    background-color: rgba(67, 97, 238, 0.07);
+    font-weight: 500;
+}
+
+.interest-item.empty {
+    color: var(--text-secondary);
+    cursor: default;
+    text-align: center;
+    padding: 1rem;
+    justify-content: center;
+}
+
+.interest-item.empty::before {
+    display: none;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.filter-btn {
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.filter-apply {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 6px rgba(67, 97, 238, 0.2);
+}
+
+.filter-apply::before {
+    content: '\f0b0';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.filter-apply:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(67, 97, 238, 0.3);
+}
+
+.filter-reset {
+    background-color: #f8f9fa;
+    color: var(--text-primary);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.filter-reset::before {
+    content: '\f021';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.filter-reset:hover {
+    background-color: #e9ecef;
+    transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+    .interests-filter {
+        padding: 1rem;
+    }
+    
+    .filter-actions {
+        flex-direction: column;
+    }
+    
+    .filter-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Карусель профилей */
+.user-carousel {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+/* Карточка профиля */
+.profile-card {
+    background-color: var(--background-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    transition: var(--transition-normal);
+    position: relative;
+}
+
+.profile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Заголовок профиля */
+.profile-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-name {
+    font-size: var(--font-size-xl);
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.profile-name a {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: var(--transition-normal);
+}
+
+.profile-name a:hover {
+    color: var(--primary-color);
+}
+
+.profile-course {
+    color: var(--text-secondary);
+    font-size: var(--font-size-md);
+}
+
+/* Контейнер изображения профиля */
+.profile-image-container {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto var(--spacing-lg);
+    position: relative;
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    object-fit: cover;
+    border: 4px solid var(--primary-color);
+}
+
+.profile-image-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+    background-color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-2xl);
+    color: var(--primary-color);
+    border: 4px solid var(--primary-color);
+}
+
+.profile-image-container a {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-full);
+}
+
+/* Информация профиля */
+.profile-info {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-gender {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-md);
+}
+
+/* Интересы */
+.profile-interests {
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-interests h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-md);
+}
+
+.interests-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    justify-content: center;
+}
+
+.interest-tag {
+    background-color: var(--primary-light);
+    color: var(--primary-color);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+}
+
+/* Биография */
+.profile-bio {
+    margin-bottom: var(--spacing-lg);
+}
+
+.profile-bio h3 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-md);
+}
+
+.profile-bio p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Кнопки действий */
+.profile-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xl);
+}
+
+.btn-like,
+.btn-dislike,
+.btn-liked,
+.btn-message {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-like {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-like:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-5px) scale(1.05);
+}
+
+.btn-liked {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.btn-liked:hover {
+    background-color: #E03547;
+    transform: translateY(-5px) scale(1.05);
+}
+
+.btn-dislike {
+    background-color: var(--dislike-color);
+    color: var(--dislike-text);
+}
+
+.btn-dislike:hover {
+    background-color: var(--dislike-hover);
+    transform: translateY(-5px) scale(1.05);
+}
+
+.btn-message {
+    background-color: #5FBA7D; /* Зеленый фон для кнопки сообщения */
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    border: none;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-message:hover {
+    background-color: #4A9E6A;
+    transform: translateY(-5px) scale(1.05);
+}
+
+/* Состояния и анимации */
+.hidden {
+    display: none;
+}
+
+.swipe-out {
+    animation: swipeOut 0.3s ease forwards;
+}
+
+.swipe-in {
+    animation: swipeIn 0.3s ease forwards;
+}
+
+@keyframes swipeOut {
+    to {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+}
+
+@keyframes swipeIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Уведомления */
+.notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(100%);
+    opacity: 0;
+    transition: var(--transition-normal);
+    z-index: 1000;
+    max-width: 300px;
+    min-height: fit-content;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+
+/* Адаптивная верстка для уведомлений */
+@media (max-width: 480px) {
+    .notification {
+        left: 20px;
+        right: 20px;
+        bottom: 20px;
+        max-width: calc(100% - 40px);
+        padding: 12px 20px;
+        text-align: center;
+    }
+}
+
+/* Адаптивная верстка */
+@media (max-width: 480px) {
+    .user-feed-container {
+        padding: var(--spacing-sm);
+    }
+    
+    .profile-card {
+        padding: var(--spacing-md);
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+    }
+    
+    .btn-like,
+    .btn-dislike,
+    .btn-liked {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Состояние при отсутствии профилей */
+.no-profiles,
+.no-more-profiles {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background-color: var(--background-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.no-profiles h2,
+.no-more-profiles h2 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-xl);
+}
+
+.no-profiles p,
+.no-more-profiles p {
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.refresh-btn {
+    display: inline-block;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: var(--radius-full);
+    text-decoration: none;
+    transition: var(--transition-normal);
+}
+
+.refresh-btn:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+/* Фильтры */
+.filters {
+    background-color: var(--background-primary);
+    padding: var(--spacing-md);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.filter-group {
+    display: flex;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* Поиск */
+.search-container {
+    margin-bottom: var(--spacing-lg);
+}
+
+.search-input {
+    width: 100%;
+    padding: var(--spacing-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-md);
+    transition: all var(--transition-normal);
+}
+
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    outline: none;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .home-container {
+        padding: var(--spacing-md);
+    }
+    
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+    }
+    
+    .filter-select {
+        width: 100%;
+    }
+}
+
+/* Анимации */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.like-button:active {
+    animation: pulse 0.3s ease;
+}
+
+/* Индикатор загрузки */
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: var(--spacing-xl);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--primary-light);
+    border-top-color: var(--primary-color);
+    border-radius: var(--radius-full);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Контейнер для хранения скрытых профилей */
+.next-profiles-container {
+    display: none;
+}
+
+/* Анимации свайпа */
+.swipe-out {
+    transform: translateX(-120%);
+    opacity: 0;
+}
+
+.swipe-in {
+    animation: swipeIn 0.5s forwards;
+}
+
+@keyframes swipeIn {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Стили для сообщения об отсутствии профилей */
+.no-profiles,
+.no-more-profiles {
+    text-align: center;
+    padding: 3rem 2rem;
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+}
+
+.no-profiles h2,
+.no-more-profiles h2 {
+    font-size: 1.5rem;
+    color: var(--header-color);
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.no-profiles p,
+.no-more-profiles p {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.refresh-btn {
+    display: inline-block;
+    padding: 0.875rem 1.5rem;
+    background-color: var(--like-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 9999px;
+    font-weight: 600;
+    transition: var(--transition);
+}
+
+.refresh-btn:hover {
+    background-color: var(--like-color-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Медиа-запросы для адаптивности */
+@media (max-width: 480px) {
+    .feed-title {
+        font-size: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .profile-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .btn-like,
+    .btn-liked,
+    .btn-dislike {
+        width: 100%;
+        padding: 0.625rem 1rem;
+    }
+}
+
+.liked-you-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: var(--liked-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-full);
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    animation: fadeIn 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.liked-you-badge i {
+    color: white;
+    font-size: 1rem;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+} 

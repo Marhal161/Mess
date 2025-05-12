@@ -103,9 +103,9 @@
             <a href="{% url 'chat_room' room_name=chat.id %}" class="direct-chat-card">
                 <div class="direct-chat-avatar">
                     {% if chat.user.avatar %}
-                        <img src="{{ chat.user.avatar.url }}" alt="{{ chat.name }}" width="50" height="50" style="border-radius: 50%">
+                        <img src="{{ chat.user.avatar.url }}" alt="{{ chat.name }}" width="56" height="56" style="border-radius: 50%; object-fit: cover;">
                     {% else %}
-                        {{ chat.name|slice:":2"|upper }}
+                        <div class="avatar-placeholder">{{ chat.name|slice:":2"|upper }}</div>
                     {% endif %}
                 </div>
                 <div class="direct-chat-info">
@@ -272,8 +272,8 @@
             
             // Аватар
             const avatarHTML = chat.user.avatar 
-                ? `<img src="${chat.user.avatar}" alt="${chat.name}" width="50" height="50" style="border-radius: 50%">` 
-                : `${chat.name.substring(0, 2).toUpperCase()}`;
+                ? `<img src="${chat.user.avatar}" alt="${chat.name}" width="56" height="56" style="border-radius: 50%; object-fit: cover;">` 
+                : `<div class="avatar-placeholder">${chat.name.substring(0, 2).toUpperCase()}</div>`;
             
             // Непрочитанные сообщения
             const unreadBadge = chat.unread_count > 0 

@@ -395,9 +395,7 @@
             </div>
             
             <div class="moder-profile-actions">
-                <button class="moder-btn moder-btn-primary" onclick="openEditModal()">
-                    <i class="fas fa-edit"></i> Редактировать профиль
-                </button>
+                {% if user.id != user_obj.id %}
                 <button class="moder-btn {% if user_obj.is_active %}moder-btn-danger{% else %}moder-btn-success{% endif %}" onclick="toggleUserStatus()">
                     {% if user_obj.is_active %}
                     <i class="fas fa-ban"></i> Заблокировать
@@ -405,6 +403,7 @@
                     <i class="fas fa-check"></i> Разблокировать
                     {% endif %}
                 </button>
+                {% endif %}
                 <a href="{% url 'profile_user_page' user_id=user_obj.id %}" class="moder-btn moder-btn-secondary">
                     <i class="fas fa-eye"></i> Просмотр публичного профиля
                 </a>
@@ -520,44 +519,7 @@
     </div>
 </div>
 
-<!-- Модальное окно для редактирования профиля -->
-<div id="editModal" class="moder-modal">
-    <div class="moder-modal-content">
-        <div class="moder-modal-header">
-            <div>Редактирование профиля</div>
-            <span class="moder-modal-close" onclick="closeEditModal()">&times;</span>
-        </div>
-        <div class="moder-modal-body">
-            <div class="moder-form-group">
-                <label class="moder-form-label" for="first_name">Имя</label>
-                <input type="text" id="first_name" class="moder-form-input" value="{{ user_obj.first_name }}">
-            </div>
-            <div class="moder-form-group">
-                <label class="moder-form-label" for="last_name">Фамилия</label>
-                <input type="text" id="last_name" class="moder-form-input" value="{{ user_obj.last_name }}">
-            </div>
-            <div class="moder-form-group">
-                <label class="moder-form-label" for="email">Email</label>
-                <input type="email" id="email" class="moder-form-input" value="{{ user_obj.email }}">
-            </div>
-        </div>
-        <div class="moder-modal-footer">
-            <button class="moder-btn moder-btn-secondary" onclick="closeEditModal()">Отмена</button>
-            <button class="moder-btn moder-btn-primary" onclick="saveUserProfile()">Сохранить</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    // Открытие и закрытие модального окна
-    function openEditModal() {
-        document.getElementById('editModal').style.display = 'flex';
-    }
-    
-    function closeEditModal() {
-        document.getElementById('editModal').style.display = 'none';
-    }
-    
     // Блокировка/разблокировка пользователя
     function toggleUserStatus() {
         if (confirm('Вы уверены, что хотите {% if user_obj.is_active %}заблокировать{% else %}разблокировать{% endif %} этого пользователя?')) {
@@ -571,63 +533,27 @@
                     action: 'toggle_active'
                 })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Произошла ошибка при изменении статуса');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     // Перезагружаем страницу для обновления информации
                     location.reload();
                 } else {
-                    alert('Ошибка при изменении статуса пользователя');
+                    alert('Ошибка при изменении статуса пользователя: ' + (data.message || 'Неизвестная ошибка'));
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert('Произошла ошибка при изменении статуса пользователя');
+                alert(error.message || 'Произошла ошибка при изменении статуса пользователя');
             });
         }
     }
-    
-    // Сохранение профиля пользователя
-    function saveUserProfile() {
-        const first_name = document.getElementById('first_name').value;
-        const last_name = document.getElementById('last_name').value;
-        const email = document.getElementById('email').value;
-        
-        fetch('/app/api/moderator/user/{{ user_obj.id }}/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                action: 'update_profile',
-                first_name: first_name,
-                last_name: last_name,
-                email: email
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                closeEditModal();
-                // Перезагружаем страницу для обновления информации
-                location.reload();
-            } else {
-                alert('Ошибка при обновлении профиля: ' + (data.message || 'Неизвестная ошибка'));
-            }
-        })
-        .catch(error => {
-            console.error('Ошибка:', error);
-            alert('Произошла ошибка при обновлении профиля');
-        });
-    }
-    
-    // Закрытие модального окна при клике вне его
-    window.onclick = function(event) {
-        const modal = document.getElementById('editModal');
-        if (event.target === modal) {
-            closeEditModal();
-        }
-    };
 </script>
 {% endblock %} 

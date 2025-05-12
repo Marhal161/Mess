@@ -4,6 +4,9 @@
 
 {% block content %}
 {% load static %}
+<!-- Контейнер для всплывающих уведомлений -->
+<div id="toast-container"></div>
+
 <div class="auth-container">
     <!-- Шаг 1: Форма с персональными данными -->
     <div class="auth-form register-form" id="step-1">
@@ -77,6 +80,9 @@
                     </div>
                     <div class="password-strength-meter">
                         <div class="strength-bar" id="strength-bar"></div>
+                    </div>
+                    <div class="password-hint" style="font-size: 12px; color: #666; margin-top: 5px; margin-bottom: 8px;">
+                        Пароль должен соответствовать минимум 3 из 5 требований:
                     </div>
                     <div class="password-requirements" id="password-requirements">
                         <div class="requirement" data-requirement="length">
